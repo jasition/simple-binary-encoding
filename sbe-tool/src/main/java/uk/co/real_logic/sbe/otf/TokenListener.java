@@ -1,11 +1,11 @@
 /*
- * Copyright 2013-2018 Real Logic Ltd.
+ * Copyright 2013-2021 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -23,8 +23,7 @@ import java.util.List;
 /**
  * Callback interface to be implemented by code wanting to decode messages on-the-fly.
  * <p>
- * If all methods are not required then consider extending {@link AbstractTokenListener}
- * for potential performance benefits and simpler code.
+ * If all methods are not required then consider extending {@link AbstractTokenListener} for simpler code.
  */
 public interface TokenListener
 {

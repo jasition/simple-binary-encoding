@@ -1,13 +1,14 @@
-/* Generated SBE (Simple Binary Encoding) message codec */
+/* Generated SBE (Simple Binary Encoding) message codec. */
 package uk.co.real_logic.sbe.ir.generated;
 
 import org.agrona.DirectBuffer;
+
 
 /**
  * Message identifiers and length of message root
  */
 @SuppressWarnings("all")
-public class MessageHeaderDecoder
+public final class MessageHeaderDecoder
 {
     public static final int SCHEMA_ID = 1;
     public static final int SCHEMA_VERSION = 0;
@@ -199,25 +200,31 @@ public class MessageHeaderDecoder
 
     public String toString()
     {
-        return appendTo(new StringBuilder(100)).toString();
+        if (null == buffer)
+        {
+            return "";
+        }
+
+        return appendTo(new StringBuilder()).toString();
     }
 
     public StringBuilder appendTo(final StringBuilder builder)
     {
+        if (null == buffer)
+        {
+            return builder;
+        }
+
         builder.append('(');
-        //Token{signal=ENCODING, name='blockLength', referencedName='null', description='null', id=-1, version=0, deprecated=0, encodedLength=2, offset=0, componentTokenCount=1, encoding=Encoding{presence=REQUIRED, primitiveType=UINT16, byteOrder=LITTLE_ENDIAN, minValue=null, maxValue=null, nullValue=null, constValue=null, characterEncoding='null', epoch='null', timeUnit=null, semanticType='null'}}
         builder.append("blockLength=");
         builder.append(blockLength());
         builder.append('|');
-        //Token{signal=ENCODING, name='templateId', referencedName='null', description='null', id=-1, version=0, deprecated=0, encodedLength=2, offset=2, componentTokenCount=1, encoding=Encoding{presence=REQUIRED, primitiveType=UINT16, byteOrder=LITTLE_ENDIAN, minValue=null, maxValue=null, nullValue=null, constValue=null, characterEncoding='null', epoch='null', timeUnit=null, semanticType='null'}}
         builder.append("templateId=");
         builder.append(templateId());
         builder.append('|');
-        //Token{signal=ENCODING, name='schemaId', referencedName='null', description='null', id=-1, version=0, deprecated=0, encodedLength=2, offset=4, componentTokenCount=1, encoding=Encoding{presence=REQUIRED, primitiveType=UINT16, byteOrder=LITTLE_ENDIAN, minValue=null, maxValue=null, nullValue=null, constValue=null, characterEncoding='null', epoch='null', timeUnit=null, semanticType='null'}}
         builder.append("schemaId=");
         builder.append(schemaId());
         builder.append('|');
-        //Token{signal=ENCODING, name='version', referencedName='null', description='null', id=-1, version=0, deprecated=0, encodedLength=2, offset=6, componentTokenCount=1, encoding=Encoding{presence=REQUIRED, primitiveType=UINT16, byteOrder=LITTLE_ENDIAN, minValue=null, maxValue=null, nullValue=null, constValue=null, characterEncoding='null', epoch='null', timeUnit=null, semanticType='null'}}
         builder.append("version=");
         builder.append(version());
         builder.append(')');

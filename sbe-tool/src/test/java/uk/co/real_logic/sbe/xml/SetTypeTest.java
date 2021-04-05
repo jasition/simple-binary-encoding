@@ -1,11 +1,11 @@
 /*
- * Copyright 2013-2018 Real Logic Ltd.
+ * Copyright 2013-2021 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,13 +15,13 @@
  */
 package uk.co.real_logic.sbe.xml;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 import uk.co.real_logic.sbe.PrimitiveType;
 import uk.co.real_logic.sbe.PrimitiveValue;
-import uk.co.real_logic.sbe.TestUtil;
+import uk.co.real_logic.sbe.Tests;
 
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -35,16 +35,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static uk.co.real_logic.sbe.xml.XmlSchemaParser.parse;
 
 public class SetTypeTest
 {
     @Test
-    public void shouldHandleBinarySetType()
-        throws Exception
+    public void shouldHandleBinarySetType() throws Exception
     {
         final String testXmlString =
             "<types>" +
@@ -65,8 +65,7 @@ public class SetTypeTest
     }
 
     @Test
-    public void shouldHandleSetTypeList()
-        throws Exception
+    public void shouldHandleSetTypeList() throws Exception
     {
         final String testXmlString =
             "<types>" +
@@ -115,9 +114,8 @@ public class SetTypeTest
         assertThat(foundBit3, is(1));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void shouldThrowExceptionWhenIllegalEncodingTypeSpecified()
-        throws Exception
     {
         final String testXmlString =
             "<types>" +
@@ -127,12 +125,12 @@ public class SetTypeTest
             "</set>" +
             "</types>";
 
-        parseTestXmlWithMap("/types/set", testXmlString);
+        assertThrows(IllegalArgumentException.class, () ->
+            parseTestXmlWithMap("/types/set", testXmlString));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void shouldThrowExceptionWhenDuplicateValueSpecified()
-        throws Exception
     {
         final String testXmlString =
             "<types>" +
@@ -142,12 +140,12 @@ public class SetTypeTest
             "</set>" +
             "</types>";
 
-        parseTestXmlWithMap("/types/set", testXmlString);
+        assertThrows(IllegalArgumentException.class, () ->
+            parseTestXmlWithMap("/types/set", testXmlString));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void shouldThrowExceptionWhenDuplicateNameSpecified()
-        throws Exception
     {
         final String testXmlString =
             "<types>" +
@@ -157,12 +155,12 @@ public class SetTypeTest
             "</set>" +
             "</types>";
 
-        parseTestXmlWithMap("/types/set", testXmlString);
+        assertThrows(IllegalArgumentException.class, () ->
+            parseTestXmlWithMap("/types/set", testXmlString));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void shouldThrowExceptionWhenValueOutOfBoundsSpecified()
-        throws Exception
     {
         final String testXmlString =
             "<types>" +
@@ -172,14 +170,14 @@ public class SetTypeTest
             "</set>" +
             "</types>";
 
-        parseTestXmlWithMap("/types/set", testXmlString);
+        assertThrows(IllegalArgumentException.class, () ->
+            parseTestXmlWithMap("/types/set", testXmlString));
     }
 
     @Test
-    public void shouldHandleEncodingTypesWithNamedTypes()
-        throws Exception
+    public void shouldHandleEncodingTypesWithNamedTypes() throws Exception
     {
-        final MessageSchema schema = parse(TestUtil.getLocalResource(
+        final MessageSchema schema = parse(Tests.getLocalResource(
             "encoding-types-schema.xml"), ParserOptions.DEFAULT);
         final List<Field> fields = schema.getMessage(1).fields();
 

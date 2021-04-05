@@ -1,11 +1,11 @@
 /*
- * Copyright 2013-2018 Real Logic Ltd.
+ * Copyright 2013-2021 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -30,15 +30,16 @@ import java.nio.channels.FileChannel;
 import java.nio.file.Paths;
 import java.util.List;
 
-import static java.nio.file.StandardOpenOption.CREATE;
-import static java.nio.file.StandardOpenOption.READ;
-import static java.nio.file.StandardOpenOption.WRITE;
+import static java.nio.file.StandardOpenOption.*;
 import static uk.co.real_logic.sbe.ir.IrUtil.*;
 import static uk.co.real_logic.sbe.ir.generated.FrameCodecEncoder.namespaceNameCharacterEncoding;
 import static uk.co.real_logic.sbe.ir.generated.FrameCodecEncoder.packageNameCharacterEncoding;
 import static uk.co.real_logic.sbe.ir.generated.FrameCodecEncoder.semanticVersionCharacterEncoding;
 import static uk.co.real_logic.sbe.ir.generated.TokenCodecEncoder.*;
 
+/**
+ * Encoder for {@link Ir} representing an SBE schema which can be written to a buffer or file.
+ */
 public class IrEncoder implements AutoCloseable
 {
     private static final int CAPACITY = 4096;
@@ -54,11 +55,17 @@ public class IrEncoder implements AutoCloseable
     private final UnsafeBuffer valBuffer = new UnsafeBuffer(valArray);
     private int totalLength = 0;
 
+    /**
+     * Construct an encoder for {@link Ir} to a file. An existing file will be overwritten.
+     *
+     * @param fileName into which the {@link Ir} will be encoded.
+     * @param ir       to be encoded into the file.
+     */
     public IrEncoder(final String fileName, final Ir ir)
     {
         try
         {
-            channel = FileChannel.open(Paths.get(fileName), READ, WRITE, CREATE);
+            channel = FileChannel.open(Paths.get(fileName), READ, WRITE, CREATE, TRUNCATE_EXISTING);
             resultBuffer = null;
             buffer = ByteBuffer.allocateDirect(CAPACITY);
             directBuffer = new UnsafeBuffer(buffer);
@@ -70,6 +77,12 @@ public class IrEncoder implements AutoCloseable
         }
     }
 
+    /**
+     * Construct an encoder for {@link Ir} to a {@link ByteBuffer}.
+     *
+     * @param buffer into which the {@link Ir} will be encoded.
+     * @param ir     to be encoded into the buffer.
+     */
     public IrEncoder(final ByteBuffer buffer, final Ir ir)
     {
         channel = null;
@@ -79,11 +92,19 @@ public class IrEncoder implements AutoCloseable
         this.ir = ir;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void close()
     {
         CloseHelper.quietClose(channel);
     }
 
+    /**
+     * Encode the provided {@link Ir} and return the length in bytes encoded.
+     *
+     * @return encode the provided {@link Ir} and return the length in bytes encoded.
+     */
     public int encode()
     {
         Verify.notNull(ir, "ir");

@@ -1,11 +1,11 @@
 /*
- * Copyright 2013-2018 Real Logic Ltd.
+ * Copyright 2013-2021 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,7 +19,7 @@ import composite.elements.EnumOne;
 import composite.elements.MessageHeaderEncoder;
 import composite.elements.MsgDecoder;
 import composite.elements.MsgEncoder;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
 import org.agrona.BitUtil;
 import org.agrona.DirectBuffer;
@@ -43,10 +43,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.*;
 
 public class CompositeElementsGenerationTest
@@ -57,7 +57,7 @@ public class CompositeElementsGenerationTest
     private static final int SCHEMA_BUFFER_CAPACITY = 16 * 1024;
 
     @Test
-    public void shouldEncodeCorrectly()
+    public void shouldEncode()
     {
         final ByteBuffer encodedMsgBuffer = ByteBuffer.allocate(MSG_BUFFER_CAPACITY);
         encodeTestMessage(encodedMsgBuffer);
@@ -93,7 +93,7 @@ public class CompositeElementsGenerationTest
     }
 
     @Test
-    public void shouldDecodeCorrectly()
+    public void shouldDecode()
     {
         final ByteBuffer encodedMsgBuffer = ByteBuffer.allocate(MSG_BUFFER_CAPACITY);
         encodeTestMessage(encodedMsgBuffer);
@@ -124,7 +124,7 @@ public class CompositeElementsGenerationTest
     }
 
     @Test
-    public void shouldDisplayCorrectly()
+    public void shouldDisplay()
     {
         final ByteBuffer encodedMsgBuffer = ByteBuffer.allocate(MSG_BUFFER_CAPACITY);
         encodeTestMessage(encodedMsgBuffer);
@@ -137,7 +137,7 @@ public class CompositeElementsGenerationTest
     }
 
     @Test
-    public void shouldOtfDecodeCorrectly() throws Exception
+    public void shouldOtfDecode() throws Exception
     {
         final ByteBuffer encodedSchemaBuffer = ByteBuffer.allocate(SCHEMA_BUFFER_CAPACITY);
         encodeSchema(encodedSchemaBuffer);

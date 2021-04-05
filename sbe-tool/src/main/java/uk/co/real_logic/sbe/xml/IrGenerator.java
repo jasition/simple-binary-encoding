@@ -1,10 +1,11 @@
-/* Copyright 2013-2018 Real Logic Ltd.
+/*
+ * Copyright 2013-2021 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -21,7 +22,7 @@ import uk.co.real_logic.sbe.ir.Ir;
 import uk.co.real_logic.sbe.ir.Signal;
 import uk.co.real_logic.sbe.ir.Token;
 
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -50,6 +51,7 @@ public class IrGenerator
             namespace,
             schema.id(),
             schema.version(),
+            schema.description(),
             schema.semanticVersion(),
             schema.byteOrder(),
             headerTokens);
@@ -116,7 +118,7 @@ public class IrGenerator
         tokenList.add(token);
     }
 
-    private void addFieldSignal(final Field field, final Signal signal)
+    private void addFieldSignal(final Field field, final Signal signal, final int typeSinceVersion)
     {
         final Encoding.Builder encodingBuilder = new Encoding.Builder()
             .epoch(field.epoch())
@@ -128,14 +130,7 @@ public class IrGenerator
         {
             final String valueRef = field.valueRef();
             final byte[] bytes;
-            try
-            {
-                bytes = valueRef.getBytes("UTF-8");
-            }
-            catch (final UnsupportedEncodingException ex)
-            {
-                throw new RuntimeException(ex);
-            }
+            bytes = valueRef.getBytes(StandardCharsets.UTF_8);
 
             encodingBuilder.constValue(new PrimitiveValue(bytes, "UTF-8", valueRef.length()));
             encodingBuilder.primitiveType(PrimitiveType.CHAR);
@@ -148,7 +143,7 @@ public class IrGenerator
             .description(field.description())
             .id(field.id())
             .offset(field.computedOffset())
-            .version(field.sinceVersion())
+            .version(Math.max(field.sinceVersion(), typeSinceVersion))
             .deprecated(field.deprecated())
             .encoding(encodingBuilder.build())
             .build();
@@ -164,20 +159,22 @@ public class IrGenerator
 
             if (null == type)
             {
-                addFieldSignal(field, Signal.BEGIN_GROUP);
+                addFieldSignal(field, Signal.BEGIN_GROUP, 0);
                 add(field.dimensionType(), 0, field);
                 addAllFields(field.groupFields());
-                addFieldSignal(field, Signal.END_GROUP);
+                addFieldSignal(field, Signal.END_GROUP, 0);
             }
             else if (type instanceof CompositeType && field.isVariableLength())
             {
-                addFieldSignal(field, Signal.BEGIN_VAR_DATA);
+                addFieldSignal(field, Signal.BEGIN_VAR_DATA, 0);
                 add((CompositeType)type, field.computedOffset(), field);
-                addFieldSignal(field, Signal.END_VAR_DATA);
+                addFieldSignal(field, Signal.END_VAR_DATA, 0);
             }
             else
             {
-                addFieldSignal(field, Signal.BEGIN_FIELD);
+                final int typeSinceVersion = type.sinceVersion();
+
+                addFieldSignal(field, Signal.BEGIN_FIELD, typeSinceVersion);
 
                 if (type instanceof EncodedDataType)
                 {
@@ -200,7 +197,7 @@ public class IrGenerator
                     throw new IllegalStateException("Unknown type: " + type);
                 }
 
-                addFieldSignal(field, Signal.END_FIELD);
+                addFieldSignal(field, Signal.END_FIELD, typeSinceVersion);
             }
         }
     }

@@ -1,11 +1,11 @@
 /*
- * Copyright 2013-2018 Real Logic Ltd.
+ * Copyright 2013-2021 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -29,6 +29,9 @@ import static java.nio.file.StandardOpenOption.CREATE;
 import static java.nio.file.StandardOpenOption.READ;
 import static java.nio.file.StandardOpenOption.WRITE;
 
+/**
+ * Example encode and decode of a complex message using generated stub codecs.
+ */
 public class ExampleUsingGeneratedStub
 {
     private static final String ENCODING_FILENAME = "sbe.encoding.filename";
@@ -37,11 +40,6 @@ public class ExampleUsingGeneratedStub
     private static final byte[] MANUFACTURER;
     private static final byte[] MODEL;
     private static final UnsafeBuffer ACTIVATION_CODE;
-
-    private static final MessageHeaderDecoder MESSAGE_HEADER_DECODER = new MessageHeaderDecoder();
-    private static final MessageHeaderEncoder MESSAGE_HEADER_ENCODER = new MessageHeaderEncoder();
-    private static final CarDecoder CAR_DECODER = new CarDecoder();
-    private static final CarEncoder CAR_ENCODER = new CarEncoder();
 
     static
     {
@@ -59,14 +57,25 @@ public class ExampleUsingGeneratedStub
         }
     }
 
+    /**
+     * Main entry point for the example.
+     *
+     * @param args which are ignored.
+     * @throws Exception if an error occurs when parsing the XML or doing IO.
+     */
     public static void main(final String[] args) throws Exception
     {
         System.out.println("\n*** Basic Stub Example ***");
 
-        final ByteBuffer byteBuffer = ByteBuffer.allocateDirect(4096);
+        final ByteBuffer byteBuffer = ByteBuffer.allocate(4096);
         final UnsafeBuffer directBuffer = new UnsafeBuffer(byteBuffer);
 
-        final int encodingLengthPlusHeader = encode(CAR_ENCODER, directBuffer, MESSAGE_HEADER_ENCODER);
+        final MessageHeaderDecoder messageHeaderDecoder = new MessageHeaderDecoder();
+        final MessageHeaderEncoder messageHeaderEncoder = new MessageHeaderEncoder();
+        final CarDecoder carDecoder = new CarDecoder();
+        final CarEncoder carEncoder = new CarEncoder();
+
+        final int encodingLengthPlusHeader = encode(carEncoder, directBuffer, messageHeaderEncoder);
 
         // Optionally write the encoded buffer to a file for decoding by the On-The-Fly decoder
 
@@ -82,24 +91,25 @@ public class ExampleUsingGeneratedStub
 
         // Decode the encoded message
 
-        int bufferOffset = 0;
-        MESSAGE_HEADER_DECODER.wrap(directBuffer, bufferOffset);
+        final int bufferOffset = 0;
+        messageHeaderDecoder.wrap(directBuffer, bufferOffset);
+
+        if (messageHeaderDecoder.schemaId() != CarEncoder.SCHEMA_ID)
+        {
+            throw new IllegalStateException("Schema ids do not match");
+        }
 
         // Lookup the applicable flyweight to decode this type of message based on templateId and version.
-        final int templateId = MESSAGE_HEADER_DECODER.templateId();
+        final int templateId = messageHeaderDecoder.templateId();
         if (templateId != baseline.CarEncoder.TEMPLATE_ID)
         {
             throw new IllegalStateException("Template ids do not match");
         }
 
-        final int actingBlockLength = MESSAGE_HEADER_DECODER.blockLength();
-        final int actingVersion = MESSAGE_HEADER_DECODER.version();
-
-        bufferOffset += MESSAGE_HEADER_DECODER.encodedLength();
-        decode(CAR_DECODER, directBuffer, bufferOffset, actingBlockLength, actingVersion);
+        decode(carDecoder, directBuffer, messageHeaderDecoder);
     }
 
-    public static int encode(
+    static int encode(
         final CarEncoder car, final UnsafeBuffer directBuffer, final MessageHeaderEncoder messageHeaderEncoder)
     {
         car.wrapAndApplyHeader(directBuffer, 0, messageHeaderEncoder)
@@ -109,10 +119,7 @@ public class ExampleUsingGeneratedStub
             .code(Model.A)
             .putVehicleCode(VEHICLE_CODE, 0);
 
-        for (int i = 0, size = CarEncoder.someNumbersLength(); i < size; i++)
-        {
-            car.someNumbers(i, i);
-        }
+        car.putSomeNumbers(1, 2, 3, 4);
 
         car.extras()
             .clear()
@@ -156,18 +163,14 @@ public class ExampleUsingGeneratedStub
         return MessageHeaderEncoder.ENCODED_LENGTH + car.encodedLength();
     }
 
-    public static void decode(
-        final CarDecoder car,
-        final UnsafeBuffer directBuffer,
-        final int bufferOffset,
-        final int actingBlockLength,
-        final int actingVersion)
+    static void decode(
+        final CarDecoder car, final UnsafeBuffer directBuffer, final MessageHeaderDecoder headerDecoder)
         throws Exception
     {
         final byte[] buffer = new byte[128];
         final StringBuilder sb = new StringBuilder();
 
-        car.wrap(directBuffer, bufferOffset, actingBlockLength, actingVersion);
+        car.wrapAndApplyHeader(directBuffer, 0, headerDecoder);
 
         sb.append("\ncar.serialNumber=").append(car.serialNumber());
         sb.append("\ncar.modelYear=").append(car.modelYear());
@@ -208,7 +211,7 @@ public class ExampleUsingGeneratedStub
         sb.append("\ncar.engine.booster.horsePower=").append(engine.booster().horsePower());
 
         sb.append("\ncar.engine.fuel=").append(
-            new String(buffer, 0, engine.getFuel(buffer, 0, buffer.length), "ASCII"));
+            new String(buffer, 0, engine.getFuel(buffer, 0, buffer.length), StandardCharsets.US_ASCII));
 
         for (final CarDecoder.FuelFiguresDecoder fuelFigures : car.fuelFigures())
         {

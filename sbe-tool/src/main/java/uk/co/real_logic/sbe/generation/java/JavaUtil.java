@@ -1,11 +1,11 @@
 /*
- * Copyright 2013-2018 Real Logic Ltd.
+ * Copyright 2013-2021 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,12 +15,14 @@
  */
 package uk.co.real_logic.sbe.generation.java;
 
+import org.agrona.Strings;
 import uk.co.real_logic.sbe.PrimitiveType;
 import uk.co.real_logic.sbe.SbeTool;
 import uk.co.real_logic.sbe.generation.Generators;
 import uk.co.real_logic.sbe.ir.Token;
-import uk.co.real_logic.sbe.util.ValidationUtil;
+import uk.co.real_logic.sbe.ValidationUtil;
 
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -31,11 +33,14 @@ import java.util.Map;
 import static java.lang.reflect.Modifier.STATIC;
 
 /**
- * Utilities for mapping between IR and the Java language.
+ * Utilities for mapping between {@link uk.co.real_logic.sbe.ir.Ir} and the Java language.
  */
 public class JavaUtil
 {
-    public enum Separators
+    /**
+     * Separator symbols for {@link Object#toString()} implementations on codecs.
+     */
+    enum Separator
     {
         BEGIN_GROUP('['),
         END_GROUP(']'),
@@ -49,25 +54,28 @@ public class JavaUtil
         KEY_VALUE('='),
         ENTRY(',');
 
-        public final char symbol;
+        private final char symbol;
 
-        Separators(final char symbol)
+        Separator(final char symbol)
         {
             this.symbol = symbol;
         }
 
         /**
-         * Add separator to a generated StringBuilder
+         * Add separator to a generated append to a {@link StringBuilder}.
          *
          * @param builder     the code generation builder to which information should be added
          * @param indent      the current generated code indentation
          * @param builderName of the generated StringBuilder to which separator should be added
          */
-        public void appendToGeneratedBuilder(final StringBuilder builder, final String indent, final String builderName)
+        void appendToGeneratedBuilder(final StringBuilder builder, final String indent, final String builderName)
         {
-            append(builder, indent, builderName + ".append('" + symbol + "');");
+            builder.append(indent).append(builderName).append(".append('").append(symbol).append("');").append('\n');
         }
 
+        /**
+         * {@inheritDoc}
+         */
         public String toString()
         {
             return String.valueOf(symbol);
@@ -158,14 +166,25 @@ public class JavaUtil
     }
 
     /**
+     * Format a Getter name for generated code.
+     *
+     * @param propertyName to be formatted.
+     * @return the property name formatted as a getter name.
+     */
+    public static String formatGetterName(final String propertyName)
+    {
+        return "get" + Generators.toUpperFirstChar(propertyName);
+    }
+
+    /**
      * Format a class name for the generated code.
      *
-     * @param value to be formatted.
-     * @return the string formatted as a class name.
+     * @param className to be formatted.
+     * @return the formatted class name.
      */
-    public static String formatClassName(final String value)
+    public static String formatClassName(final String className)
     {
-        return Generators.toUpperFirstChar(value);
+        return Generators.toUpperFirstChar(className);
     }
 
     /**
@@ -252,118 +271,197 @@ public class JavaUtil
     /**
      * Generate the Javadoc comment header for a type.
      *
+     * @param sb        to append to.
      * @param indent    level for the comment.
      * @param typeToken for the type.
-     * @return a string representation of the Javadoc comment.
      */
-    public static String generateTypeJavadoc(final String indent, final Token typeToken)
+    public static void generateTypeJavadoc(
+        final StringBuilder sb, final String indent, final Token typeToken)
     {
         final String description = typeToken.description();
-        if (null == description || description.isEmpty())
+        if (Strings.isEmpty(description))
         {
-            return "";
+            return;
         }
 
-        return
-            indent + "/**\n" +
-            indent + " * " + description + '\n' +
-            indent + " */\n";
+        sb.append('\n')
+            .append(indent).append("/**\n")
+            .append(indent).append(" * ");
+
+        escapeJavadoc(sb, description);
+
+        sb.append('\n')
+            .append(indent).append(" */\n");
     }
 
     /**
      * Generate the Javadoc comment header for a bitset choice option decode method.
      *
+     * @param out         to append to.
      * @param indent      level for the comment.
      * @param optionToken for the type.
-     * @return a string representation of the Javadoc comment.
+     * @throws IOException on failing to write to output.
      */
-    public static String generateOptionDecodeJavadoc(final String indent, final Token optionToken)
+    public static void generateOptionDecodeJavadoc(
+        final Appendable out, final String indent, final Token optionToken)
+        throws IOException
     {
         final String description = optionToken.description();
-        if (null == description || description.isEmpty())
+        if (Strings.isEmpty(description))
         {
-            return "";
+            return;
         }
 
-        return
-            indent + "/**\n" +
-            indent + " * " + description + '\n' +
-            indent + " *\n" +
-            indent + " * @return true if " + optionToken.name() + " is set or false if not\n" +
-            indent + " */\n";
+        out.append(indent).append("/**\n")
+            .append(indent).append(" * ");
+
+        escapeJavadoc(out, description);
+
+        out.append('\n')
+            .append(indent).append(" *\n")
+            .append(indent).append(" * @return true if ").append(optionToken.name()).append(" set or false if not.\n")
+            .append(indent).append(" */\n");
     }
 
     /**
      * Generate the Javadoc comment header for a bitset choice option encode method.
      *
+     * @param out         to append to.
      * @param indent      level for the comment.
      * @param optionToken for the type.
-     * @return a string representation of the Javadoc comment.
+     * @throws IOException on failing to write to output.
      */
-    public static String generateOptionEncodeJavadoc(final String indent, final Token optionToken)
+    public static void generateOptionEncodeJavadoc(
+        final Appendable out, final String indent, final Token optionToken)
+        throws IOException
     {
         final String description = optionToken.description();
-        if (null == description || description.isEmpty())
+        if (Strings.isEmpty(description))
         {
-            return "";
+            return;
         }
 
-        return
-            indent + "/**\n" +
-            indent + " * " + description + '\n' +
-            indent + " *\n" +
-            indent + " * @param value true if " + optionToken.name() + " is set or false if not\n" +
-            indent + " */\n";
+        out.append(indent).append("/**\n")
+            .append(indent).append(" * ");
+
+        escapeJavadoc(out, description);
+
+        final String name = optionToken.name();
+        out.append('\n')
+            .append(indent).append(" *\n")
+            .append(indent).append(" * @param value true if ").append(name).append(" is set or false if not.\n")
+            .append(indent).append(" * @return this for a fluent API.\n")
+            .append(indent).append(" */\n");
     }
 
     /**
      * Generate the Javadoc comment header for flyweight property.
      *
+     * @param sb            to append to.
      * @param indent        level for the comment.
      * @param propertyToken for the property name.
      * @param typeName      for the property type.
-     * @return a string representation of the Javadoc comment.
      */
-    public static String generateFlyweightPropertyJavadoc(
-        final String indent, final Token propertyToken, final String typeName)
+    public static void generateFlyweightPropertyJavadoc(
+        final StringBuilder sb, final String indent, final Token propertyToken, final String typeName)
     {
         final String description = propertyToken.description();
-        if (null == description || description.isEmpty())
+        if (Strings.isEmpty(description))
         {
-            return "";
+            return;
         }
 
-        return
-            indent + "/**\n" +
-            indent + " * " + description + '\n' +
-            indent + " *\n" +
-            indent + " * @return " + typeName + " : " + description + "\n" +
-            indent + " */\n";
+        sb.append('\n')
+            .append(indent).append("/**\n")
+            .append(indent).append(" * ");
+
+        escapeJavadoc(sb, description);
+
+        sb.append('\n')
+            .append(indent).append(" *\n")
+            .append(indent).append(" * @return ").append(typeName).append(" : ");
+
+        escapeJavadoc(sb, description);
+
+        sb.append("\n")
+            .append(indent).append(" */");
     }
 
     /**
      * Generate the Javadoc comment header for group encode property.
      *
+     * @param sb            to append to.
      * @param indent        level for the comment.
      * @param propertyToken for the property name.
      * @param typeName      for the property type.
-     * @return a string representation of the Javadoc comment.
      */
-    public static String generateGroupEncodePropertyJavadoc(
-        final String indent, final Token propertyToken, final String typeName)
+    public static void generateGroupEncodePropertyJavadoc(
+        final StringBuilder sb, final String indent, final Token propertyToken, final String typeName)
     {
         final String description = propertyToken.description();
-        if (null == description || description.isEmpty())
+        if (Strings.isEmpty(description))
         {
-            return "";
+            return;
         }
 
-        return
-            indent + "/**\n" +
-            indent + " * " + description + "\n" +
-            indent + " *\n" +
-            indent + " * @param count of times the group will be encoded\n" +
-            indent + " * @return " + typeName + " : encoder for the group\n" +
-            indent + " */\n";
+        sb.append('\n')
+            .append(indent).append("/**\n")
+            .append(indent).append(" * ");
+
+        escapeJavadoc(sb, description);
+
+        sb.append("\n")
+            .append(indent).append(" *\n")
+            .append(indent).append(" * @param count of times the group will be encoded.\n")
+            .append(indent).append(" * @return ").append(typeName).append(" : encoder for the group.\n")
+            .append(indent).append(" */");
+    }
+
+    private static void escapeJavadoc(final Appendable out, final String doc) throws IOException
+    {
+        for (int i = 0, length = doc.length(); i < length; i++)
+        {
+            final char c = doc.charAt(i);
+            switch (c)
+            {
+                case '<':
+                    out.append("&lt;");
+                    break;
+
+                case '>':
+                    out.append("&gt;");
+                    break;
+
+                default:
+                    out.append(c);
+                    break;
+            }
+        }
+    }
+
+    private static void escapeJavadoc(final StringBuilder sb, final String doc)
+    {
+        for (int i = 0, length = doc.length(); i < length; i++)
+        {
+            final char c = doc.charAt(i);
+            switch (c)
+            {
+                case '<':
+                    sb.append("&lt;");
+                    break;
+
+                case '>':
+                    sb.append("&gt;");
+                    break;
+
+                case '&':
+                    sb.append("&amp;");
+                    break;
+
+                default:
+                    sb.append(c);
+                    break;
+            }
+        }
     }
 }

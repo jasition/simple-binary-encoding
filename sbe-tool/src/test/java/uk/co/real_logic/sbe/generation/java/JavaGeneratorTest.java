@@ -1,11 +1,11 @@
 /*
- * Copyright 2013-2018 Real Logic Ltd.
+ * Copyright 2013-2021 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,14 +15,14 @@
  */
 package uk.co.real_logic.sbe.generation.java;
 
-import org.junit.Before;
-import org.junit.Test;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.agrona.generation.CompilerUtil;
 import org.agrona.generation.StringWriterOutputManager;
-import uk.co.real_logic.sbe.TestUtil;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import uk.co.real_logic.sbe.Tests;
 import uk.co.real_logic.sbe.ir.Ir;
 import uk.co.real_logic.sbe.xml.IrGenerator;
 import uk.co.real_logic.sbe.xml.MessageSchema;
@@ -33,14 +33,12 @@ import java.lang.reflect.Method;
 import java.nio.ByteOrder;
 import java.util.Map;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.hasToString;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.startsWith;
-import static org.junit.Assert.*;
+import static org.hamcrest.Matchers.*;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
-import static uk.co.real_logic.sbe.generation.CodeGenerator.MESSAGE_HEADER_DECODER_TYPE;
-import static uk.co.real_logic.sbe.generation.java.JavaGenerator.MESSAGE_HEADER_ENCODER_TYPE;
+import static uk.co.real_logic.sbe.generation.java.JavaGenerator.MESSAGE_HEADER_DECODER_TYPE;
 import static uk.co.real_logic.sbe.generation.java.ReflectionUtil.*;
 import static uk.co.real_logic.sbe.xml.XmlSchemaParser.parse;
 
@@ -57,11 +55,11 @@ public class JavaGeneratorTest
 
     private Ir ir;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception
     {
         final ParserOptions options = ParserOptions.builder().stopOnError(true).build();
-        final MessageSchema schema = parse(TestUtil.getLocalResource("code-generation-schema.xml"), options);
+        final MessageSchema schema = parse(Tests.getLocalResource("code-generation-schema.xml"), options);
         final IrGenerator irg = new IrGenerator();
         ir = irg.generate(schema);
 
@@ -76,7 +74,7 @@ public class JavaGeneratorTest
         final int templateIdOffset = 2;
         final short templateId = (short)7;
         final int blockLength = 32;
-        final String fqClassName = ir.applicableNamespace() + "." + MESSAGE_HEADER_ENCODER_TYPE;
+        final String fqClassName = ir.applicableNamespace() + "." + JavaGenerator.MESSAGE_HEADER_ENCODER_TYPE;
 
         when(mockBuffer.getShort(bufferOffset + templateIdOffset, BYTE_ORDER)).thenReturn(templateId);
 
@@ -443,6 +441,23 @@ public class JavaGeneratorTest
         assertThat(get(decoder, "vehicleCode"), is("R11R12"));
     }
 
+    @Test
+    public void shouldGenerateRepeatingGroupCountLimits() throws Exception
+    {
+        generator().generate();
+
+        final String className = "CarEncoder$FuelFiguresEncoder";
+        final String fqClassName = ir.applicableNamespace() + "." + className;
+
+        final Class<?> clazz = compile(fqClassName);
+        final Method minValue = clazz.getMethod("countMinValue");
+        assertNotNull(minValue);
+        assertEquals(0, minValue.invoke(null));
+        final Method maxValue = clazz.getMethod("countMaxValue");
+        assertNotNull(maxValue);
+        assertEquals(65534, maxValue.invoke(null));
+    }
+
     private Class<?> getModelClass(final Object encoder) throws ClassNotFoundException
     {
         final String className = "Model";
@@ -479,28 +494,32 @@ public class JavaGeneratorTest
         return decoder;
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void shouldValidateMissingMutableBufferClass()
     {
-        new JavaGenerator(ir, "dasdsads", BUFFER_NAME, false, false, false, outputManager);
+        assertThrows(IllegalArgumentException.class, () ->
+            new JavaGenerator(ir, "dasdsads", BUFFER_NAME, false, false, false, outputManager));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void shouldValidateNotImplementedMutableBufferClass()
     {
-        new JavaGenerator(ir, "java.nio.ByteBuffer", BUFFER_NAME, false, false, false, outputManager);
+        assertThrows(IllegalArgumentException.class, () ->
+            new JavaGenerator(ir, "java.nio.ByteBuffer", BUFFER_NAME, false, false, false, outputManager));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void shouldValidateMissingReadOnlyBufferClass()
     {
-        new JavaGenerator(ir, BUFFER_NAME, "dasdsads", false, false, false, outputManager);
+        assertThrows(IllegalArgumentException.class, () ->
+            new JavaGenerator(ir, BUFFER_NAME, "dasdsads", false, false, false, outputManager));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void shouldValidateNotImplementedReadOnlyBufferClass()
     {
-        new JavaGenerator(ir, BUFFER_NAME, "java.nio.ByteBuffer", false, false, false, outputManager);
+        assertThrows(IllegalArgumentException.class, () ->
+            new JavaGenerator(ir, BUFFER_NAME, "java.nio.ByteBuffer", false, false, false, outputManager));
     }
 
     private Class<?> compileCarEncoder() throws Exception

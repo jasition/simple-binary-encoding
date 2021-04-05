@@ -1,11 +1,11 @@
 /*
- * Copyright 2013-2018 Real Logic Ltd.
+ * Copyright 2013-2021 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -21,13 +21,13 @@
 
 using namespace uk::co::real_logic::sbe::benchmarks;
 
-char VEHICLE_CODE[] = {'a', 'b', 'c', 'd', 'e', 'f'};
-uint32_t SOMENUMBERS[] = { 1, 2, 3, 4, 5 };
-char MANUFACTURER_CODE[] = {'1', '2', '3'};
+char VEHICLE_CODE[] = { 'a', 'b', 'c', 'd', 'e', 'f' };
+uint32_t SOME_NUMBERS[] = { 1, 2, 3, 4, 5 };
+char MANUFACTURER_CODE[] = { '1', '2', '3' };
 const char *MANUFACTURER = "Honda";
-int MANUFACTURERLEN = strlen(MANUFACTURER);
+size_t MANUFACTURER_LEN = strlen(MANUFACTURER);
 const char *MODEL = "Civic VTi";
-int MODELLEN = strlen(MODEL);
+size_t MODEL_LEN = strlen(MODEL);
 
 class SbeCarCodecBench : public CodecBench<SbeCarCodecBench>
 {
@@ -40,7 +40,7 @@ public:
            .available(BooleanType::T)
            .code(Model::A)
            .putVehicleCode(VEHICLE_CODE)
-           .putSomeNumbers((char *)SOMENUMBERS);
+           .putSomeNumbers((char *)SOME_NUMBERS);
 
         car.extras().clear()
            .cruiseControl(true)
@@ -73,20 +73,20 @@ public:
                 .next().mph(60).seconds(7.1f)
                 .next().mph(100).seconds(11.8f);
 
-        car.putManufacturer(MANUFACTURER, MANUFACTURERLEN);
-        car.putModel(MODEL, MODELLEN);
+        car.putManufacturer(MANUFACTURER, static_cast<std::uint32_t>(MANUFACTURER_LEN));
+        car.putModel(MODEL, static_cast<std::uint32_t>(MODEL_LEN));
 
         return car.encodedLength();
-    };
+    }
 
     virtual std::uint64_t decode(const char *buffer, const std::uint64_t bufferLength)
     {
         car.wrapForDecode((char *)buffer, 0, Car::sbeBlockLength(), Car::sbeSchemaVersion(), bufferLength);
 
-        int64_t tmpInt;
-        const char *tmpChar;
-        double tmpDouble;
-        bool tmpBool;
+        volatile int64_t tmpInt;
+        volatile const char *tmpChar;
+        volatile double tmpDouble;
+        volatile bool tmpBool;
 
         tmpInt = car.serialNumber();
         tmpInt = car.modelYear();
@@ -133,13 +133,13 @@ public:
         tmpChar = car.manufacturer();
         tmpChar = car.model();
 
-        (void)tmpInt;
-        (void)tmpChar;
-        (void)tmpDouble;
-        (void)tmpBool;
+        static_cast<void>(tmpInt);
+        static_cast<void>(tmpChar);
+        static_cast<void>(tmpDouble);
+        static_cast<void>(tmpBool);
 
         return car.encodedLength();
-    };
+    }
 
 private:
     Car car;

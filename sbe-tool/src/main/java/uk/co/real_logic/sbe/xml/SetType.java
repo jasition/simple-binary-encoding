@@ -1,11 +1,11 @@
 /*
- * Copyright 2013-2018 Real Logic Ltd.
+ * Copyright 2013-2021 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -31,18 +31,21 @@ import java.util.Map;
 import static uk.co.real_logic.sbe.xml.XmlSchemaParser.*;
 
 /**
- * SBE setType representing a bitset of options.
+ * SBE set tpe representing a bitset of options.
  */
 public class SetType extends Type
 {
+    /**
+     * SBE schema set type.
+     */
     public static final String SET_TYPE = "set";
 
     private final PrimitiveType encodingType;
     private final Map<PrimitiveValue, Choice> choiceByPrimitiveValueMap = new LinkedHashMap<>();
     private final Map<String, Choice> choiceByNameMap = new LinkedHashMap<>();
 
-    public SetType(final Node node)
-        throws XPathExpressionException, IllegalArgumentException
+    SetType(final Node node)
+        throws XPathExpressionException
     {
         this(node, null, null);
     }
@@ -54,10 +57,9 @@ public class SetType extends Type
      * @param givenName      for the node.
      * @param referencedName of the type when created from a ref in a composite.
      * @throws XPathExpressionException on invalid XPath.
-     * @throws IllegalArgumentException on illegal encoding type.
      */
     public SetType(final Node node, final String givenName, final String referencedName)
-        throws XPathExpressionException, IllegalArgumentException
+        throws XPathExpressionException
     {
         super(node, givenName, referencedName);
 
@@ -75,11 +77,12 @@ public class SetType extends Type
 
             default:
                 // might not have ran into this type yet, so look for it
-                final Node encodingTypeNode = (Node)xPath.compile(
-                    String.format("%s[@name=\'%s\']", XmlSchemaParser.TYPE_XPATH_EXPR, encodingTypeStr))
+                final String expression = TYPE_XPATH_EXPR + "[@name='" + encodingTypeStr + "']";
+                final Node encodingTypeNode = (Node)xPath
+                    .compile(expression)
                     .evaluate(node.getOwnerDocument(), XPathConstants.NODE);
 
-                if (encodingTypeNode == null)
+                if (null == encodingTypeNode)
                 {
                     encodingType = null;
                 }
@@ -172,13 +175,30 @@ public class SetType extends Type
         return choiceByNameMap.values();
     }
 
+    /**
+     * Always false.
+     *
+     * {@inheritDoc}
+     */
     public boolean isVariableLength()
     {
         return false;
     }
 
     /**
-     * Holder for valid values for EnumType
+     * {@inheritDoc}
+     */
+    public String toString()
+    {
+        return "SetType{" +
+            "encodingType=" + encodingType +
+            ", choiceByPrimitiveValueMap=" + choiceByPrimitiveValueMap +
+            ", choiceByNameMap=" + choiceByNameMap +
+            '}';
+    }
+
+    /**
+     * Holder for valid values for SBE schema enum type.
      */
     public static class Choice
     {
@@ -203,7 +223,7 @@ public class SetType extends Type
             deprecated = Integer.parseInt(getAttributeValue(node, "deprecated", "0"));
 
             // choice values are bit positions (0, 1, 2, 3, 4, etc.) from LSB to MSB
-            if (value.longValue() >= (encodingType.size() * 8))
+            if (value.longValue() >= (encodingType.size() * 8L))
             {
                 throw new IllegalArgumentException("Choice value out of bounds: " + value.longValue());
             }
@@ -251,7 +271,6 @@ public class SetType extends Type
             return sinceVersion;
         }
 
-
         /**
          * Version in which {@link Choice} was deprecated. Only valid if greater than zero.
          *
@@ -260,6 +279,20 @@ public class SetType extends Type
         public int deprecated()
         {
             return deprecated;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        public String toString()
+        {
+            return "Choice{" +
+                "name='" + name + '\'' +
+                ", description='" + description + '\'' +
+                ", value=" + value +
+                ", sinceVersion=" + sinceVersion +
+                ", deprecated=" + deprecated +
+                '}';
         }
     }
 }

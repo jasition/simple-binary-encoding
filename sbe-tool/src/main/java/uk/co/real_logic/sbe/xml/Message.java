@@ -1,11 +1,11 @@
 /*
- * Copyright 2013-2018 Real Logic Ltd.
+ * Copyright 2013-2021 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -160,7 +160,7 @@ public class Message
      */
     public int blockLength()
     {
-        return blockLength > computedBlockLength ? blockLength : computedBlockLength;
+        return Math.max(blockLength, computedBlockLength);
     }
 
     private List<Field> parseMembers(final Node node) throws XPathExpressionException
@@ -339,8 +339,8 @@ public class Message
             .presence(Presence.get(getAttributeValue(node, "presence", "required")))
             .sinceVersion(Integer.parseInt(getAttributeValue(node, "sinceVersion", "0")))
             .deprecated(Integer.parseInt(getAttributeValue(node, "deprecated", "0")))
-            .epoch(getAttributeValue(node, "epoch", "unix"))
-            .timeUnit(getAttributeValue(node, "timeUnit", "nanosecond"))
+            .epoch(getAttributeValueOrNull(node, "epoch"))
+            .timeUnit(getAttributeValueOrNull(node, "timeUnit"))
             .type(fieldType)
             .variableLength(true)
             .build();
@@ -460,5 +460,24 @@ public class Message
 
             handleError(node, msg);
         }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public String toString()
+    {
+        return "Message{" +
+            "id=" + id +
+            ", name='" + name + '\'' +
+            ", description='" + description + '\'' +
+            ", sinceVersion=" + sinceVersion +
+            ", deprecated=" + deprecated +
+            ", blockLength=" + blockLength +
+            ", fieldList=" + fieldList +
+            ", semanticType='" + semanticType + '\'' +
+            ", computedBlockLength=" + computedBlockLength +
+            ", typeByNameMap=" + typeByNameMap +
+            '}';
     }
 }

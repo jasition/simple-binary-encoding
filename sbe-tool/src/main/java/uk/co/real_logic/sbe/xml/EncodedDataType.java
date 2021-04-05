@@ -1,11 +1,11 @@
 /*
- * Copyright 2013-2018 Real Logic Ltd.
+ * Copyright 2013-2021 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -33,10 +33,13 @@ import static uk.co.real_logic.sbe.xml.XmlSchemaParser.getAttributeValue;
 import static uk.co.real_logic.sbe.xml.XmlSchemaParser.getAttributeValueOrNull;
 
 /**
- * SBE encodedDataType
+ * SBE simple encoded data type.
  */
 public class EncodedDataType extends Type
 {
+    /**
+     * SBE schema type.
+     */
     public static final String ENCODED_DATA_TYPE = "type";
 
     private final PrimitiveType primitiveType;
@@ -161,7 +164,8 @@ public class EncodedDataType extends Type
             final String valueRefType = valueRef.substring(0, periodIndex);
 
             final XPath xPath = XPathFactory.newInstance().newXPath();
-            final Node valueRefNode = (Node)xPath.compile("/messageSchema/types/enum[@name='" + valueRefType + "']")
+            final Node valueRefNode = (Node)xPath.compile(
+                "/*[local-name() = 'messageSchema']/types/enum[@name='" + valueRefType + "']")
                 .evaluate(node.getOwnerDocument(), XPathConstants.NODE);
 
             if (valueRefNode == null)
@@ -247,6 +251,11 @@ public class EncodedDataType extends Type
         return varLen;
     }
 
+    /**
+     * Set if the type is variable length or not.
+     *
+     * @param variableLength true if variable length.
+     */
     public void variableLength(final boolean variableLength)
     {
         this.varLen = variableLength;
@@ -288,7 +297,6 @@ public class EncodedDataType extends Type
      * @return value of the constant for this type
      */
     public PrimitiveValue constVal()
-        throws IllegalArgumentException
     {
         if (presence() != CONSTANT)
         {
@@ -383,5 +391,23 @@ public class EncodedDataType extends Type
         }
 
         return primitiveValue;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public String toString()
+    {
+        return "EncodedDataType{" +
+            "primitiveType=" + primitiveType +
+            ", length=" + length +
+            ", constValue=" + constValue +
+            ", minValue=" + minValue +
+            ", maxValue=" + maxValue +
+            ", nullValue=" + nullValue +
+            ", characterEncoding='" + characterEncoding + '\'' +
+            ", valueRef='" + valueRef + '\'' +
+            ", varLen=" + varLen +
+            '}';
     }
 }

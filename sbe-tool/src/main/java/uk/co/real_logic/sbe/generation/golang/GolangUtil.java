@@ -1,11 +1,12 @@
 /*
+ * Copyright 2013-2021 Real Logic Limited.
  * Copyright (C) 2016 MarketFactory, Inc
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,11 +18,12 @@ package uk.co.real_logic.sbe.generation.golang;
 
 import uk.co.real_logic.sbe.PrimitiveType;
 import uk.co.real_logic.sbe.SbeTool;
-import uk.co.real_logic.sbe.util.ValidationUtil;
+import uk.co.real_logic.sbe.ValidationUtil;
 
-import java.nio.ByteOrder;
 import java.util.EnumMap;
 import java.util.Map;
+
+import static uk.co.real_logic.sbe.generation.Generators.toUpperFirstChar;
 
 /**
  * Utilities for mapping between IR and the Golang language.
@@ -86,28 +88,6 @@ public class GolangUtil
     }
 
     /**
-     * Uppercase the first character of a given String.
-     *
-     * @param str to have the first character upper cased.
-     * @return a new String with the first character in uppercase.
-     */
-    public static String toUpperFirstChar(final String str)
-    {
-        return Character.toUpperCase(str.charAt(0)) + str.substring(1);
-    }
-
-    /**
-     * Lowercase the first character of a given String.
-     *
-     * @param str to have the first character upper cased.
-     * @return a new String with the first character in uppercase.
-     */
-    public static String toLowerFirstChar(final String str)
-    {
-        return Character.toLowerCase(str.charAt(0)) + str.substring(1);
-    }
-
-    /**
      * Format a String as a property name.
      *
      * @param value to be formatted.
@@ -142,35 +122,5 @@ public class GolangUtil
     public static String formatTypeName(final String value)
     {
         return toUpperFirstChar(value);
-    }
-
-    /**
-     * Return the Golang formatted byte order encoding string to use for a given byte order and primitiveType
-     *
-     * @param byteOrder     of the {@link uk.co.real_logic.sbe.ir.Token}
-     * @param primitiveType of the {@link uk.co.real_logic.sbe.ir.Token}
-     * @return the string formatted as the byte ordering encoding
-     */
-    public static String formatByteOrderEncoding(final ByteOrder byteOrder, final PrimitiveType primitiveType)
-    {
-        switch (primitiveType.size())
-        {
-            case 2:
-                return "binary.Write(buf, order, obj)";
-
-            case 4:
-                return "binary.Write(buf, order, obj)";
-
-            case 8:
-                return "binary.Write(buf, order, obj)";
-
-            default:
-                return "";
-        }
-    }
-
-    public static String closingBraces(final int count)
-    {
-        return new String(new char[count]).replace("\0", "}\n");
     }
 }

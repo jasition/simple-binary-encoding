@@ -1,11 +1,11 @@
 /*
- * Copyright 2013-2018 Real Logic Ltd.
+ * Copyright 2013-2021 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,16 +15,13 @@
  */
 package uk.co.real_logic.sbe.codec.java;
 
-import org.junit.Test;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
+import org.junit.jupiter.api.Test;
 
 import java.nio.ByteOrder;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class TypesTest
 {
@@ -50,7 +47,7 @@ public class TypesTest
             }
             else
             {
-                assertFalse("bit set i = " + i, result);
+                assertFalse(result, "bit set i = " + i);
             }
         }
     }
@@ -67,7 +64,7 @@ public class TypesTest
             bits = (byte)(bits | (1 << i));
             buffer.putByte(bufferIndex, bits);
             total += (1 << i);
-            assertThat(buffer.getByte(bufferIndex), is((byte)total));
+            assertEquals((byte)total, buffer.getByte(bufferIndex));
         }
     }
 
@@ -88,7 +85,7 @@ public class TypesTest
             }
             else
             {
-                assertFalse("bit set i = " + i, result);
+                assertFalse(result, "bit set i = " + i);
             }
         }
     }
@@ -105,7 +102,7 @@ public class TypesTest
             bits = (short)(bits | (1 << i));
             buffer.putShort(bufferIndex, bits, BYTE_ORDER);
             total += (1 << i);
-            assertThat(buffer.getShort(bufferIndex, BYTE_ORDER), is((short)total));
+            assertEquals((short)total, buffer.getShort(bufferIndex, BYTE_ORDER));
         }
     }
 
@@ -126,7 +123,7 @@ public class TypesTest
             }
             else
             {
-                assertFalse("bit set i = " + i, result);
+                assertFalse(result, "bit set i = " + i);
             }
         }
     }
@@ -143,7 +140,7 @@ public class TypesTest
             bits = bits | (1 << i);
             buffer.putInt(bufferIndex, bits, BYTE_ORDER);
             total += (1 << i);
-            assertThat(buffer.getInt(bufferIndex, BYTE_ORDER), is((int)total));
+            assertEquals((int)total, buffer.getInt(bufferIndex, BYTE_ORDER));
         }
     }
 }

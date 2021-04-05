@@ -1,11 +1,11 @@
 /*
- * Copyright 2013-2018 Real Logic Ltd.
+ * Copyright 2013-2021 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,8 +15,7 @@
  */
 package uk.co.real_logic.sbe.xml;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
@@ -34,15 +33,16 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static uk.co.real_logic.sbe.PrimitiveValue.parse;
 
 public class EncodedDataTypeTest
 {
     @Test
-    public void shouldHandleSettingAllAttributes()
-        throws Exception
+    public void shouldHandleSettingAllAttributes() throws Exception
     {
         final String testXmlString =
             "<types>" +
@@ -65,8 +65,7 @@ public class EncodedDataTypeTest
     }
 
     @Test
-    public void shouldHandleMultipleTypes()
-        throws Exception
+    public void shouldHandleMultipleTypes() throws Exception
     {
         final String testXmlString =
             "<types>" +
@@ -85,8 +84,7 @@ public class EncodedDataTypeTest
     }
 
     @Test
-    public void shouldSetAppropriateDefaultsWhenNoneSpecified()
-        throws Exception
+    public void shouldSetAppropriateDefaultsWhenNoneSpecified() throws Exception
     {
         final String testXmlString =
             "<types>" +
@@ -106,8 +104,7 @@ public class EncodedDataTypeTest
     }
 
     @Test
-    public void shouldUseAppropriatePresence()
-        throws Exception
+    public void shouldUseAppropriatePresence() throws Exception
     {
         final String testXmlString =
             "<types>" +
@@ -125,45 +122,41 @@ public class EncodedDataTypeTest
         assertThat(map.get("testTypeConstant").presence(), is(Presence.CONSTANT));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void shouldThrowExceptionWhenUnknownPresenceSpecified()
-        throws Exception
     {
         final String testXmlString =
             "<types>" +
             "    <type name=\"testTyeUnknown\" presence=\"XXXXX\" primitiveType=\"char\"/>" +
             "</types>";
 
-        parseTestXmlWithMap("/types/type", testXmlString);
+        assertThrows(IllegalArgumentException.class, () -> parseTestXmlWithMap("/types/type", testXmlString));
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void shouldThrowExceptionWhenNoPrimitiveTypeSpecified()
-        throws Exception
     {
         final String testXmlString =
             "<types>" +
             "    <type name=\"testType\"/>" +
             "</types>";
 
-        parseTestXmlWithMap("/types/type", testXmlString);
+        assertThrows(IllegalStateException.class, () -> parseTestXmlWithMap("/types/type", testXmlString));
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void shouldThrowExceptionWhenNoNameSpecified()
-        throws Exception
     {
         final String testXmlString =
             "<types>" +
             "    <type primitiveType=\"char\"/>" +
             "</types>";
 
-        parseTestXmlWithMap("/types/type", testXmlString);
+        assertThrows(IllegalStateException.class, () -> parseTestXmlWithMap("/types/type", testXmlString));
     }
 
     @Test
-    public void shouldUseAppropriatePrimitiveType()
-        throws Exception
+    public void shouldUseAppropriatePrimitiveType() throws Exception
     {
         final String testXmlString =
             "<types>" +
@@ -195,21 +188,20 @@ public class EncodedDataTypeTest
         assertThat(((EncodedDataType)map.get("testTypeDouble")).primitiveType(), is(PrimitiveType.DOUBLE));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void shouldThrowExceptionWhenUnknownPrimitiveTypeSpecified()
-        throws Exception
     {
         final String testXmlString =
             "<types>" +
             "    <type name=\"testTypeUnknown\" primitiveType=\"XXXX\"/>" +
             "</types>";
 
-        parseTestXmlWithMap("/types/type", testXmlString);
+        assertThrows(IllegalArgumentException.class,
+            () -> parseTestXmlWithMap("/types/type", testXmlString));
     }
 
     @Test
-    public void shouldReturnCorrectSizeForPrimitiveTypes()
-        throws Exception
+    public void shouldReturnCorrectSizeForPrimitiveTypes() throws Exception
     {
         final String testXmlString =
             "<types>" +
@@ -241,8 +233,7 @@ public class EncodedDataTypeTest
     }
 
     @Test
-    public void shouldReturnCorrectDescriptionForType()
-        throws Exception
+    public void shouldReturnCorrectDescriptionForType() throws Exception
     {
         final String desc = "basic description attribute of a type element";
         final String testXmlString =
@@ -256,8 +247,7 @@ public class EncodedDataTypeTest
     }
 
     @Test
-    public void shouldReturnNullOnNoDescriptionSet()
-        throws Exception
+    public void shouldReturnNullOnNoDescriptionSet() throws Exception
     {
         final String testXmlString =
             "<types>" +
@@ -267,12 +257,11 @@ public class EncodedDataTypeTest
         final Map<String, Type> map = parseTestXmlWithMap("/types/type", testXmlString);
         final String description = map.get("testTypeNoDescription").description();
 
-        Assert.assertNull(description);
+        assertNull(description);
     }
 
     @Test
-    public void shouldReturnCorrectSemanticTypeForType()
-        throws Exception
+    public void shouldReturnCorrectSemanticTypeForType() throws Exception
     {
         final String semanticType = "char";
         final String testXmlString =
@@ -286,8 +275,7 @@ public class EncodedDataTypeTest
     }
 
     @Test
-    public void shouldReturnNullWhenSemanticTypeNotSpecified()
-        throws Exception
+    public void shouldReturnNullWhenSemanticTypeNotSpecified() throws Exception
     {
         final String testXmlString =
             "<types>" +
@@ -296,24 +284,22 @@ public class EncodedDataTypeTest
 
         final Map<String, Type> map = parseTestXmlWithMap("/types/type", testXmlString);
 
-        Assert.assertNull(map.get("testType").semanticType());
+        assertNull(map.get("testType").semanticType());
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void shouldThrowExceptionWhenConstantPresenceButNoDataSpecified()
-        throws Exception
     {
         final String testXmlString =
             "<types>" +
             "    <type name=\"testTypePresenceConst\" primitiveType=\"char\" presence=\"constant\"></type>" +
             "</types>";
 
-        parseTestXmlWithMap("/types/type", testXmlString);
+        assertThrows(IllegalArgumentException.class, () -> parseTestXmlWithMap("/types/type", testXmlString));
     }
 
     @Test
-    public void shouldReturnCorrectPresenceConstantWhenSpecified()
-        throws Exception
+    public void shouldReturnCorrectPresenceConstantWhenSpecified() throws Exception
     {
         final String testXmlString =
             "<types>" +
@@ -328,8 +314,7 @@ public class EncodedDataTypeTest
     }
 
     @Test
-    public void shouldReturnCorrectConstantStringWhenSpecified()
-        throws Exception
+    public void shouldReturnCorrectConstantStringWhenSpecified() throws Exception
     {
         final String strConst = "string constant";
         final String testXmlString =
@@ -346,8 +331,7 @@ public class EncodedDataTypeTest
     }
 
     @Test
-    public void shouldReturnDefaultMinValueWhenSpecified()
-        throws Exception
+    public void shouldReturnDefaultMinValueWhenSpecified() throws Exception
     {
         final String testXmlString =
             "<types>" +
@@ -356,12 +340,11 @@ public class EncodedDataTypeTest
 
         final Map<String, Type> map = parseTestXmlWithMap("/types/type", testXmlString);
 
-        Assert.assertNull(((EncodedDataType)map.get("testTypeDefaultCharMinValue")).minValue());
+        assertNull(((EncodedDataType)map.get("testTypeDefaultCharMinValue")).minValue());
     }
 
     @Test
-    public void shouldReturnDefaultMaxValueWhenSpecified()
-        throws Exception
+    public void shouldReturnDefaultMaxValueWhenSpecified() throws Exception
     {
         final String testXmlString =
             "<types>" +
@@ -370,12 +353,11 @@ public class EncodedDataTypeTest
 
         final Map<String, Type> map = parseTestXmlWithMap("/types/type", testXmlString);
 
-        Assert.assertNull(((EncodedDataType)map.get("testTypeDefaultCharMaxValue")).maxValue());
+        assertNull(((EncodedDataType)map.get("testTypeDefaultCharMaxValue")).maxValue());
     }
 
     @Test
-    public void shouldReturnDefaultNullValueWhenSpecified()
-        throws Exception
+    public void shouldReturnDefaultNullValueWhenSpecified() throws Exception
     {
         final String testXmlString =
             "<types>" +
@@ -384,12 +366,11 @@ public class EncodedDataTypeTest
 
         final Map<String, Type> map = parseTestXmlWithMap("/types/type", testXmlString);
 
-        Assert.assertNull(((EncodedDataType)map.get("testTypeDefaultCharNullValue")).nullValue());
+        assertNull(((EncodedDataType)map.get("testTypeDefaultCharNullValue")).nullValue());
     }
 
     @Test
-    public void shouldReturnCorrectMinValueWhenSpecified()
-        throws Exception
+    public void shouldReturnCorrectMinValueWhenSpecified() throws Exception
     {
         final String minVal = "10";
         final String testXmlString =
@@ -403,8 +384,7 @@ public class EncodedDataTypeTest
     }
 
     @Test
-    public void shouldReturnCorrectMaxValueWhenSpecified()
-        throws Exception
+    public void shouldReturnCorrectMaxValueWhenSpecified() throws Exception
     {
         final String maxVal = "10";
         final String testXmlString =
@@ -419,8 +399,7 @@ public class EncodedDataTypeTest
     }
 
     @Test
-    public void shouldReturnCorrectNullValueWhenSpecified()
-        throws Exception
+    public void shouldReturnCorrectNullValueWhenSpecified() throws Exception
     {
         final String nullVal = "10";
         final String testXmlString =

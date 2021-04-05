@@ -1,11 +1,11 @@
 /*
- * Copyright 2013-2018 Real Logic Ltd.
+ * Copyright 2013-2021 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,7 +15,7 @@
  */
 package uk.co.real_logic.sbe.json;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import uk.co.real_logic.sbe.EncodedCarTestBase;
 import uk.co.real_logic.sbe.ir.Ir;
 import uk.co.real_logic.sbe.ir.IrDecoder;
@@ -32,7 +32,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-import static junit.framework.TestCase.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class JsonPrinterTest extends EncodedCarTestBase
 {
@@ -60,7 +60,7 @@ public class JsonPrinterTest extends EncodedCarTestBase
             "    \"available\": \"T\",\n" +
             "    \"code\": \"A\",\n" +
             "    \"someNumbers\": [0, 1, 2, 3, 4],\n" +
-            "    \"vehicleCode\": \"abcdef\",\n" +
+            "    \"vehicleCode\": \"ab\\\"def\",\n" +
             "    \"extras\": { \"sunRoof\": false, \"sportsPack\": true, \"cruiseControl\": true },\n" +
             "    \"engine\": \n" +
             "    {\n" +
@@ -70,6 +70,8 @@ public class JsonPrinterTest extends EncodedCarTestBase
             "        \"manufacturerCode\": \"123\",\n" +
             "        \"fuel\": \"Petrol\"\n" +
             "    },\n" +
+            "    \"uuid\": [7, 3],\n" +
+            "    \"cupHolderCount\": 5,\n" +
             "    \"fuelFigures\": [\n" +
             "    {\n" +
             "        \"speed\": 30,\n" +
@@ -118,7 +120,7 @@ public class JsonPrinterTest extends EncodedCarTestBase
             "    }],\n" +
             "    \"manufacturer\": \"Honda\",\n" +
             "    \"model\": \"Civic VTi\",\n" +
-            "    \"activationCode\": \"\"\n" +
+            "    \"activationCode\": \"315\\\\8\"\n" +
             "}",
             result);
     }

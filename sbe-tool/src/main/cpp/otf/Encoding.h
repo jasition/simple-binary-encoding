@@ -1,11 +1,11 @@
 /*
- * Copyright 2013-2018 Real Logic Ltd.
+ * Copyright 2013-2021 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -156,9 +156,9 @@ inline std::size_t lengthOfType(PrimitiveType type)
 class PrimitiveValue
 {
 public:
-    PrimitiveValue(PrimitiveType type, std::size_t valueLength, const char *value)
+    PrimitiveValue(PrimitiveType type, std::size_t valueLength, const char *value) :
+        m_type(type)
     {
-        m_type = type;
         if (0 == valueLength)
         {
             m_type = PrimitiveType::NONE;
@@ -338,19 +338,18 @@ public:
         std::string characterEncoding,
         std::string epoch,
         std::string timeUnit,
-        std::string semanticType)
-        :
+        std::string semanticType) :
         m_presence(presence),
         m_primitiveType(type),
         m_byteOrder(byteOrder),
-        m_minValue(minValue),
-        m_maxValue(maxValue),
-        m_nullValue(nullValue),
-        m_constValue(constValue),
-        m_characterEncoding(characterEncoding),
-        m_epoch(epoch),
-        m_timeUnit(timeUnit),
-        m_semanticType(semanticType)
+        m_minValue(std::move(minValue)),
+        m_maxValue(std::move(maxValue)),
+        m_nullValue(std::move(nullValue)),
+        m_constValue(std::move(constValue)),
+        m_characterEncoding(std::move(characterEncoding)),
+        m_epoch(std::move(epoch)),
+        m_timeUnit(std::move(timeUnit)),
+        m_semanticType(std::move(semanticType))
     {
     }
 
@@ -532,42 +531,42 @@ public:
         return getDouble(m_primitiveType, m_byteOrder, buffer);
     }
 
-    inline const PrimitiveValue& minValue() const
+    inline const PrimitiveValue &minValue() const
     {
         return m_minValue;
     }
 
-    inline const PrimitiveValue& maxValue() const
+    inline const PrimitiveValue &maxValue() const
     {
         return m_maxValue;
     }
 
-    inline const PrimitiveValue& nullValue() const
+    inline const PrimitiveValue &nullValue() const
     {
         return m_nullValue;
     }
 
-    inline const PrimitiveValue& constValue() const
+    inline const PrimitiveValue &constValue() const
     {
         return m_constValue;
     }
 
-    inline const std::string& characterEncoding() const
+    inline const std::string &characterEncoding() const
     {
         return m_characterEncoding;
     }
 
-    inline const std::string& epoch() const
+    inline const std::string &epoch() const
     {
         return m_epoch;
     }
 
-    inline const std::string& timeUnit() const
+    inline const std::string &timeUnit() const
     {
         return m_timeUnit;
     }
 
-    inline const std::string& semanticType() const
+    inline const std::string &semanticType() const
     {
         return m_semanticType;
     }

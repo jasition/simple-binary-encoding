@@ -1,11 +1,12 @@
 /*
+ * Copyright 2013-2021 Real Logic Limited.
  * Copyright (C) 2016 MarketFactory, Inc
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -22,6 +23,7 @@ import uk.co.real_logic.sbe.generation.Generators;
 import uk.co.real_logic.sbe.ir.*;
 import org.agrona.Verify;
 
+import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Writer;
@@ -32,11 +34,15 @@ import java.util.Scanner;
 import java.util.TreeSet;
 
 import static uk.co.real_logic.sbe.PrimitiveType.CHAR;
+import static uk.co.real_logic.sbe.generation.Generators.toUpperFirstChar;
 import static uk.co.real_logic.sbe.generation.golang.GolangUtil.*;
 import static uk.co.real_logic.sbe.ir.GenerationUtil.collectVarData;
 import static uk.co.real_logic.sbe.ir.GenerationUtil.collectGroups;
 import static uk.co.real_logic.sbe.ir.GenerationUtil.collectFields;
 
+/**
+ * Codec generator for the Go Lang programming language.
+ */
 @SuppressWarnings("MethodLength")
 public class GolangGenerator implements CodeGenerator
 {
@@ -45,6 +51,12 @@ public class GolangGenerator implements CodeGenerator
 
     private TreeSet<String> imports;
 
+    /**
+     * Create a new Go language {@link CodeGenerator}.
+     *
+     * @param ir            for the messages and types.
+     * @param outputManager for generating the codecs to.
+     */
     public GolangGenerator(final Ir ir, final OutputManager outputManager)
     {
         Verify.notNull(ir, "ir");
@@ -54,6 +66,13 @@ public class GolangGenerator implements CodeGenerator
         this.outputManager = outputManager;
     }
 
+    /**
+     * Generate a file for the Ir based on a template.
+     *
+     * @param fileName     to generate.
+     * @param templateName for the file.
+     * @throws IOException if an error is encountered when writing the output.
+     */
     public void generateFileFromTemplate(final String fileName, final String templateName) throws IOException
     {
         try (Writer out = outputManager.createOutput(fileName))
@@ -62,6 +81,11 @@ public class GolangGenerator implements CodeGenerator
         }
     }
 
+    /**
+     * Generate the stubs for the types used as message fields.
+     *
+     * @throws IOException if an error is encountered when writing the output.
+     */
     public void generateTypeStubs() throws IOException
     {
         for (final List<Token> tokens : ir.types())
@@ -80,9 +104,6 @@ public class GolangGenerator implements CodeGenerator
                     generateComposite(tokens, "");
                     break;
 
-                case BEGIN_MESSAGE:
-                    break;
-
                 default:
                     break;
             }
@@ -91,7 +112,12 @@ public class GolangGenerator implements CodeGenerator
 
     // MessageHeader is special but the standard allows it to be
     // pretty arbitrary after the first four fields.
-    // All we need is the imports, type declaration, and encode/decode
+    // All we need is the imports, type declaration, and encode/decode.
+    /**
+     * Generate the composites for dealing with the message header.
+     *
+     * @throws IOException if an error is encountered when writing the output.
+     */
     public void generateMessageHeaderStub() throws IOException
     {
         final String messageHeader = "MessageHeader";
@@ -113,6 +139,9 @@ public class GolangGenerator implements CodeGenerator
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void generate() throws IOException
     {
         // Add the Marshalling from the big or little endian
@@ -493,10 +522,23 @@ public class GolangGenerator implements CodeGenerator
         final Encoding encoding = token.encoding();
 
         // Optional items get initialized to their NullValue
-        sb.append(String.format(
-            "\t%1$s = %2$s\n",
-            varName,
-            generateNullValueLiteral(encoding.primitiveType(), encoding)));
+        if (token.arrayLength() > 1)
+        {
+            sb.append(String.format(
+                "\tfor idx := 0; idx < %1$d; idx++ {\n" +
+                "\t\t%2$s[idx] = %3$s\n" +
+                "\t}\n",
+                token.arrayLength(),
+                varName,
+                generateNullValueLiteral(encoding.primitiveType(), encoding)));
+        }
+        else
+        {
+            sb.append(String.format(
+                "\t%1$s = %2$s\n",
+                varName,
+                generateNullValueLiteral(encoding.primitiveType(), encoding)));
+        }
     }
 
     private void generateConstantInitPrimitive(
@@ -566,7 +608,6 @@ public class GolangGenerator implements CodeGenerator
         rangeCheck.append("\treturn nil\n}\n");
         init.append("\treturn\n}\n");
     }
-
 
     // Newer messages and groups can add extra properties before the variable
     // length elements (groups and varData). We read past the difference
@@ -685,7 +726,7 @@ public class GolangGenerator implements CodeGenerator
                     encode.append(generateEncodeOffset(gap, ""));
                     decode.append(generateDecodeOffset(gap, ""));
                     currentOffset += signalToken.encodedLength() + gap;
-                    final String primitive = Character.toString(varName) + "." + propertyName;
+                    final String primitive = varName + "." + propertyName;
 
                     // Encode of a constant is a nullop and we want to
                     // initialize constant values.
@@ -856,7 +897,6 @@ public class GolangGenerator implements CodeGenerator
     {
         final char varName = Character.toLowerCase(choiceName.charAt(0));
 
-        // Encode
         generateEncodeHeader(sb, varName, choiceName, false, false);
 
         sb.append(String.format(
@@ -1043,7 +1083,7 @@ public class GolangGenerator implements CodeGenerator
                 gap = encodingToken.offset() - currentOffset;
                 encode.append(generateEncodeOffset(gap, ""));
                 decode.append(generateDecodeOffset(gap, ""));
-                final String primitive = Character.toString(varName) + "." + propertyName;
+                final String primitive = varName + "." + propertyName;
 
                 // Encode of a constant is a nullop and we want to
                 // initialize constant values.
@@ -1151,6 +1191,7 @@ public class GolangGenerator implements CodeGenerator
             "\t\tif cap(%1$c.%2$s) < int(%2$sLength) {\n" +
             "\t\t\t%1$s.%2$s = make([]%5$s, %2$sLength)\n" +
             "\t\t}\n" +
+            "\t\t%1$c.%2$s = %1$c.%2$s[:%2$sLength]\n" +
             "\t\tif err := _m.ReadBytes(_r, %1$c.%2$s); err != nil {\n" +
             "\t\t\treturn err\n" +
             "\t\t}\n" +
@@ -1178,8 +1219,10 @@ public class GolangGenerator implements CodeGenerator
         final String propertyName = formatPropertyName(signalToken.name());
         final Token blockLengthToken = Generators.findFirst("blockLength", tokens, 0);
         final Token numInGroupToken = Generators.findFirst("numInGroup", tokens, 0);
+        final int blockLengthOffset = blockLengthToken.offset();
         final String blockLengthType = golangTypeName(blockLengthToken.encoding().primitiveType());
         final String blockLengthMarshalType = golangMarshalType(blockLengthToken.encoding().primitiveType());
+        final int numInGroupOffset = numInGroupToken.offset();
         final String numInGroupType = golangTypeName(numInGroupToken.encoding().primitiveType());
         final String numInGroupMarshalType = golangMarshalType(numInGroupToken.encoding().primitiveType());
 
@@ -1188,16 +1231,23 @@ public class GolangGenerator implements CodeGenerator
         encode.append(generateEncodeOffset(gap, ""));
         decode.append(generateDecodeOffset(gap, ""));
 
-        // Write/Read the group header
-        encode.append(String.format(
-            "\n\tvar %7$sBlockLength %1$s = %2$d\n" +
-            "\tvar %7$sNumInGroup %3$s = %3$s(len(%4$s.%5$s))\n" +
+        final String encBlockLengthTmpl =
+            "\tvar %7$sBlockLength %1$s = %2$d\n" +
             "\tif err := _m.Write%6$s(_w, %7$sBlockLength); err != nil {\n" +
             "\t\treturn err\n" +
-            "\t}\n" +
+            "\t}\n";
+
+        final String encNumInGroupTmpl =
+            "\tvar %7$sNumInGroup %3$s = %3$s(len(%4$s.%5$s))\n" +
             "\tif err := _m.Write%8$s(_w, %7$sNumInGroup); err != nil {\n" +
             "\t\treturn err\n" +
-            "\t}\n",
+            "\t}\n";
+
+        // Order write based on offset
+        final String encGrpMetaTmpl = blockLengthOffset < numInGroupOffset ?
+            encBlockLengthTmpl + encNumInGroupTmpl : encNumInGroupTmpl + encBlockLengthTmpl;
+
+        encode.append(String.format(encGrpMetaTmpl,
             blockLengthType,
             signalToken.encodedLength(),
             numInGroupType,
@@ -1207,7 +1257,7 @@ public class GolangGenerator implements CodeGenerator
             propertyName,
             numInGroupMarshalType));
 
-        // Write/Read the group itself
+        // Write the group itself
         encode.append(String.format(
             "\tfor _, prop := range %1$s.%2$s {\n" +
             "\t\tif err := prop.Encode(_m, _w); err != nil {\n" +
@@ -1216,30 +1266,40 @@ public class GolangGenerator implements CodeGenerator
             varName,
             toUpperFirstChar(signalToken.name())));
 
-        // Read length/num
         decode.append(String.format(
             "\n" +
-            "\tif %1$s.%2$sInActingVersion(actingVersion) {\n" +
-            "\t\tvar %2$sBlockLength %3$s\n" +
-            "\t\tvar %2$sNumInGroup %4$s\n" +
-            "\t\tif err := _m.Read%5$s(_r, &%2$sBlockLength); err != nil {\n" +
-            "\t\t\treturn err\n" +
-            "\t\t}\n" +
-            "\t\tif err := _m.Read%6$s(_r, &%2$sNumInGroup); err != nil {\n" +
-            "\t\t\treturn err\n" +
-            "\t\t}\n",
+            "\tif %1$s.%2$sInActingVersion(actingVersion) {\n",
             varName,
+            propertyName));
+
+        final String decBlockLengthTmpl =
+            "\t\tvar %1$sBlockLength %2$s\n" +
+            "\t\tif err := _m.Read%4$s(_r, &%1$sBlockLength); err != nil {\n" +
+            "\t\t\treturn err\n" +
+            "\t\t}\n";
+
+        final String decNumInGroupTmpl =
+            "\t\tvar %1$sNumInGroup %3$s\n" +
+            "\t\tif err := _m.Read%5$s(_r, &%1$sNumInGroup); err != nil {\n" +
+            "\t\t\treturn err\n" +
+            "\t\t}\n";
+
+        final String decGrpMetaTmpl = blockLengthOffset < numInGroupOffset ?
+            decBlockLengthTmpl + decNumInGroupTmpl : decNumInGroupTmpl + decBlockLengthTmpl;
+
+        decode.append(String.format(decGrpMetaTmpl,
             propertyName,
             blockLengthType,
             numInGroupType,
             blockLengthMarshalType,
             numInGroupMarshalType));
 
-        // Read num elements
+        // Read the group itself
         decode.append(String.format(
             "\t\tif cap(%1$c.%2$s) < int(%2$sNumInGroup) {\n" +
             "\t\t\t%1$s.%2$s = make([]%3$s%2$s, %2$sNumInGroup)\n" +
             "\t\t}\n" +
+            "\t\t%1$c.%2$s = %1$c.%2$s[:%2$sNumInGroup]\n" +
             "\t\tfor i, _ := range %1$s.%2$s {\n" +
             "\t\t\tif err := %1$s.%2$s[i].Decode(_m, _r, actingVersion, uint(%4$sBlockLength)); err != nil {\n" +
             "\t\t\t\treturn err\n" +
@@ -1340,7 +1400,7 @@ public class GolangGenerator implements CodeGenerator
             final Token varDataToken = Generators.findFirst("varData", tokens, i);
             final String characterEncoding = varDataToken.encoding().characterEncoding();
 
-            generateFieldMetaAttributeMethod(sb, typeName, token);
+            generateFieldMetaAttributeMethod(sb, typeName, propertyName, token);
             generateVarDataDescriptors(sb, token, typeName, propertyName, characterEncoding, lengthOfLengthField);
 
             i += token.componentTokenCount();
@@ -1444,9 +1504,7 @@ public class GolangGenerator implements CodeGenerator
         }
     }
 
-    private void generateComposite(
-        final List<Token> tokens,
-        final String namePrefix) throws IOException
+    private void generateComposite(final List<Token> tokens, final String namePrefix) throws IOException
     {
         final String compositeName = namePrefix + formatTypeName(tokens.get(0).applicableTypeName());
         final StringBuilder sb = new StringBuilder();
@@ -1580,14 +1638,12 @@ public class GolangGenerator implements CodeGenerator
         sb.append("}\n");
     }
 
-    private String namespacesToPackageName(
-        final CharSequence[] namespaces)
+    private String namespacesToPackageName(final CharSequence[] namespaces)
     {
         return String.join("_", namespaces).toLowerCase().replace('.', '_').replace(' ', '_').replace('-', '_');
     }
 
-    private StringBuilder generateFileHeader(
-        final CharSequence[] namespaces)
+    private StringBuilder generateFileHeader(final CharSequence[] namespaces)
     {
         final StringBuilder sb = new StringBuilder();
         sb.append("// Generated SBE (Simple Binary Encoding) message codec\n\n");
@@ -1610,18 +1666,26 @@ public class GolangGenerator implements CodeGenerator
     private String generateFromTemplate(final CharSequence[] namespaces, final String templateName)
         throws IOException
     {
-        final String jarFile = "golang/templates/" + templateName + ".go";
-        final InputStream inputStream = this.getClass().getClassLoader().getResourceAsStream(jarFile);
-        final Scanner s = new Scanner(inputStream).useDelimiter("\\A");
-        final String template = s.hasNext() ? s.next() : "";
-        inputStream.close();
+        final String templateFileName = "golang/templates/" + templateName + ".go";
+        final InputStream stream = getClass().getClassLoader().getResourceAsStream(templateFileName);
+        if (null == stream)
+        {
+            return "";
+        }
 
-        return String.format(template, namespacesToPackageName(namespaces));
+        try (InputStream in = new BufferedInputStream(stream))
+        {
+            final Scanner scanner = new Scanner(in).useDelimiter("\\A");
+            if (!scanner.hasNext())
+            {
+                return "";
+            }
+
+            return String.format(scanner.next(), namespacesToPackageName(namespaces));
+        }
     }
 
-    private static void generateTypeDeclaration(
-        final StringBuilder sb,
-        final String typeName)
+    private static void generateTypeDeclaration(final StringBuilder sb, final String typeName)
     {
         sb.append(String.format("type %s struct {\n", typeName));
     }
@@ -1771,15 +1835,10 @@ public class GolangGenerator implements CodeGenerator
             final String propertyName = formatPropertyName(token.name());
 
             // Write {Min,Max,Null}Value
-            switch (token.signal())
+            if (token.signal() == Signal.ENCODING)
             {
-                case ENCODING:
-                    generateMinMaxNull(sb, containingTypeName, propertyName, token);
-                    generateCharacterEncoding(sb, containingTypeName, propertyName, token);
-                    break;
-
-                default:
-                    break;
+                generateMinMaxNull(sb, containingTypeName, propertyName, token);
+                generateCharacterEncoding(sb, containingTypeName, propertyName, token);
             }
 
             switch (token.signal())
@@ -1790,6 +1849,7 @@ public class GolangGenerator implements CodeGenerator
                 case BEGIN_COMPOSITE:
                     generateSinceActingDeprecated(sb, containingTypeName, propertyName, token);
                     break;
+
                 default:
                     break;
             }
@@ -2080,26 +2140,12 @@ public class GolangGenerator implements CodeGenerator
 
                 generateId(sb, containingTypeName, propertyName, signalToken);
                 generateSinceActingDeprecated(sb, containingTypeName, propertyName, signalToken);
-                generateFieldMetaAttributeMethod(sb, containingTypeName, signalToken);
+                generateFieldMetaAttributeMethod(sb, containingTypeName, propertyName, signalToken);
 
-                switch (encodingToken.signal())
+                if (encodingToken.signal() == Signal.ENCODING)
                 {
-                    case ENCODING:
-                        generateMinMaxNull(sb, containingTypeName, propertyName, encodingToken);
-                        generateCharacterEncoding(sb, containingTypeName, propertyName, encodingToken);
-                        break;
-
-                    case BEGIN_ENUM:
-                        break;
-
-                    case BEGIN_SET:
-                        break;
-
-                    case BEGIN_COMPOSITE:
-                        break;
-
-                    default:
-                        break;
+                    generateMinMaxNull(sb, containingTypeName, propertyName, encodingToken);
+                    generateCharacterEncoding(sb, containingTypeName, propertyName, encodingToken);
                 }
             }
         }
@@ -2108,6 +2154,7 @@ public class GolangGenerator implements CodeGenerator
     private static void generateFieldMetaAttributeMethod(
         final StringBuilder sb,
         final String containingTypeName,
+        final String propertyName,
         final Token token)
     {
         final Encoding encoding = token.encoding();
@@ -2117,20 +2164,21 @@ public class GolangGenerator implements CodeGenerator
         final String presence = encoding.presence() == null ? "" : encoding.presence().toString().toLowerCase();
 
         sb.append(String.format(
-            "\nfunc (*%1$s) %3$sMetaAttribute(meta int) string {\n" +
+            "\nfunc (*%1$s) %2$sMetaAttribute(meta int) string {\n" +
             "\tswitch meta {\n" +
             "\tcase 1:\n" +
-            "\t\treturn \"%2$s\"\n" +
-            "\tcase 2:\n" +
             "\t\treturn \"%3$s\"\n" +
-            "\tcase 3:\n" +
+            "\tcase 2:\n" +
             "\t\treturn \"%4$s\"\n" +
-            "\tcase 4:\n" +
+            "\tcase 3:\n" +
             "\t\treturn \"%5$s\"\n" +
+            "\tcase 4:\n" +
+            "\t\treturn \"%6$s\"\n" +
             "\t}\n" +
             "\treturn \"\"\n" +
             "}\n",
             containingTypeName,
+            propertyName,
             epoch,
             timeUnit,
             semanticType,

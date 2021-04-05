@@ -1,11 +1,11 @@
 /*
- * Copyright 2013-2018 Real Logic Ltd.
+ * Copyright 2013-2021 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,27 +15,30 @@
  */
 package uk.co.real_logic.sbe.xml;
 
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
-import uk.co.real_logic.sbe.TestUtil;
+import org.junit.jupiter.api.Test;
+import uk.co.real_logic.sbe.Tests;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 import static uk.co.real_logic.sbe.xml.XmlSchemaParser.parse;
 
 public class CyclicReferencesTest
 {
-    @Rule
-    public final ExpectedException exceptionRule = ExpectedException.none();
-
     @Test
-    public void shouldTestForCyclicRefs()
-        throws Exception
+    public void shouldTestForCyclicRefs() throws Exception
     {
-        exceptionRule.expect(IllegalStateException.class);
-        exceptionRule.expectMessage("ref types cannot create circular dependencies");
+        try
+        {
+            final ParserOptions options = ParserOptions.builder().suppressOutput(true).warningsFatal(true).build();
 
-        final ParserOptions options = ParserOptions.builder().suppressOutput(true).warningsFatal(true).build();
+            parse(Tests.getLocalResource("cyclic-refs-schema.xml"), options);
+        }
+        catch (final IllegalStateException ex)
+        {
+            assertEquals(ex.getMessage(), "ref types cannot create circular dependencies");
+            return;
+        }
 
-        parse(TestUtil.getLocalResource("cyclic-refs-schema.xml"), options);
+        fail("Expected IllegalStateException");
     }
 }

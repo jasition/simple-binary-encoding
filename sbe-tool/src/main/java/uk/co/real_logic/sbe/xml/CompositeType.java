@@ -1,11 +1,11 @@
 /*
- * Copyright 2013-2018 Real Logic Ltd.
+ * Copyright 2013-2021 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -32,21 +32,25 @@ import java.util.Map;
 
 import static javax.xml.xpath.XPathConstants.NODESET;
 import static uk.co.real_logic.sbe.PrimitiveType.*;
+import static uk.co.real_logic.sbe.SbeTool.JAVA_GENERATE_INTERFACES;
 import static uk.co.real_logic.sbe.xml.XmlSchemaParser.getAttributeValue;
 import static uk.co.real_logic.sbe.xml.XmlSchemaParser.getAttributeValueOrNull;
 
 /**
- * SBE compositeType.
+ * SBE compositeType which is a composite of other composites, sets, enums, or simple types.
  */
 public class CompositeType extends Type
 {
+    /**
+     * SBE schema composite type.
+     */
     public static final String COMPOSITE_TYPE = "composite";
-    public static final String SUB_TYPES_EXP = "type|enum|set|composite|ref";
+    private static final String SUB_TYPES_EXP = "type|enum|set|composite|ref|data|group";
 
     private final List<String> compositesPath = new ArrayList<>();
     private final Map<String, Type> containedTypeByNameMap = new LinkedHashMap<>();
 
-    public CompositeType(final Node node) throws XPathExpressionException
+    CompositeType(final Node node) throws XPathExpressionException
     {
         this(node, null, null, new ArrayList<>());
     }
@@ -60,7 +64,7 @@ public class CompositeType extends Type
      * @param compositesPath with the path of composites that represents the levels of composition.
      * @throws XPathExpressionException if the XPath is invalid.
      */
-    public CompositeType(
+    CompositeType(
         final Node node, final String givenName, final String referencedName, final List<String> compositesPath)
         throws XPathExpressionException
     {
@@ -131,7 +135,6 @@ public class CompositeType extends Type
      */
     public List<Type> getTypeList()
     {
-
         return new ArrayList<>(containedTypeByNameMap.values());
     }
 
@@ -299,6 +302,8 @@ public class CompositeType extends Type
      */
     public void checkForWellFormedMessageHeader(final Node node)
     {
+        final boolean shouldGenerateInterfaces = Boolean.getBoolean(JAVA_GENERATE_INTERFACES);
+
         final EncodedDataType blockLengthType = (EncodedDataType)containedTypeByNameMap.get("blockLength");
         final EncodedDataType templateIdType = (EncodedDataType)containedTypeByNameMap.get("templateId");
         final EncodedDataType schemaIdType = (EncodedDataType)containedTypeByNameMap.get("schemaId");
@@ -312,36 +317,51 @@ public class CompositeType extends Type
         {
             XmlSchemaParser.handleError(node, "\"blockLength\" must be unsigned");
         }
-        else if (blockLengthType.primitiveType() != UINT16)
-        {
-            XmlSchemaParser.handleWarning(node, "\"blockLength\" should be UINT16");
-        }
 
-        if (templateIdType == null)
-        {
-            XmlSchemaParser.handleError(node, "composite for message header must have \"templateId\"");
-        }
-        else if (templateIdType.primitiveType() != UINT16)
-        {
-            XmlSchemaParser.handleError(node, "\"templateId\" must be UINT16");
-        }
+        validateHeaderField(node, "blockLength", blockLengthType, UINT16, shouldGenerateInterfaces);
+        validateHeaderField(node, "templateId", templateIdType, UINT16, shouldGenerateInterfaces);
+        validateHeaderField(node, "schemaId", schemaIdType, UINT16, shouldGenerateInterfaces);
+        validateHeaderField(node, "version", versionType, UINT16, shouldGenerateInterfaces);
+    }
 
-        if (schemaIdType == null)
+    private void validateHeaderField(
+        final Node node,
+        final String fieldName,
+        final EncodedDataType actualType,
+        final PrimitiveType expectedType,
+        final boolean shouldGenerateInterfaces)
+    {
+        if (actualType == null)
         {
-            XmlSchemaParser.handleError(node, "composite for message header must have \"schemaId\"");
+            XmlSchemaParser.handleError(
+                node,
+                String.format("composite for message header must have \"%s\"", fieldName));
         }
-        else if (schemaIdType.primitiveType() != UINT16)
+        else if (actualType.primitiveType() != expectedType)
         {
-            XmlSchemaParser.handleError(node, "\"schemaId\" must be UINT16");
-        }
+            XmlSchemaParser.handleWarning(node, String.format("\"%s\" should be %s", fieldName, expectedType.name()));
 
-        if (versionType == null)
-        {
-            XmlSchemaParser.handleError(node, "composite for message header must have \"version\"");
-        }
-        else if (versionType.primitiveType() != UINT16)
-        {
-            XmlSchemaParser.handleError(node, "\"version\" must be UINT16");
+            if (shouldGenerateInterfaces)
+            {
+                if (actualType.primitiveType().size() > expectedType.size())
+                {
+                    XmlSchemaParser.handleError(
+                        node,
+                        String.format("\"%s\" must be less than %s bytes to use %s",
+                        fieldName,
+                        expectedType.size(),
+                        JAVA_GENERATE_INTERFACES));
+                }
+                else
+                {
+                    XmlSchemaParser.handleWarning(
+                        node,
+                        String.format("\"%s\" will be cast to %s to use %s",
+                        fieldName,
+                        expectedType.name(),
+                        JAVA_GENERATE_INTERFACES));
+                }
+            }
         }
     }
 
@@ -374,6 +394,9 @@ public class CompositeType extends Type
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public boolean isVariableLength()
     {
         return false;
@@ -414,7 +437,8 @@ public class CompositeType extends Type
                 final String refName = XmlSchemaParser.getAttributeValue(subTypeNode, "name");
                 final String refTypeName = XmlSchemaParser.getAttributeValue(subTypeNode, "type");
                 final int refOffset = Integer.parseInt(XmlSchemaParser.getAttributeValue(subTypeNode, "offset", "-1"));
-                final Node refTypeNode = (Node)xPath.compile("/messageSchema/types/*[@name='" + refTypeName + "']")
+                final Node refTypeNode = (Node)xPath.compile(
+                    "/*[local-name() = 'messageSchema']/types/*[@name='" + refTypeName + "']")
                     .evaluate(subTypeNode.getOwnerDocument(), XPathConstants.NODE);
 
                 if (refTypeNode == null)
@@ -440,6 +464,11 @@ public class CompositeType extends Type
                 break;
             }
 
+            case "data":
+            case "group":
+                XmlSchemaParser.handleError(subTypeNode, nodeName + " not valid within composite");
+                break;
+
             default:
                 throw new IllegalStateException("Unknown node type: name=" + nodeName);
         }
@@ -455,5 +484,16 @@ public class CompositeType extends Type
         }
 
         return type;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public String toString()
+    {
+        return "CompositeType{" +
+            "compositesPath=" + compositesPath +
+            ", containedTypeByNameMap=" + containedTypeByNameMap +
+            '}';
     }
 }

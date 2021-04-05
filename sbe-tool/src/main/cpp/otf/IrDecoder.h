@@ -1,11 +1,11 @@
 /*
- * Copyright 2013-2018 Real Logic Ltd.
+ * Copyright 2013-2021 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -43,8 +43,7 @@
 
 using namespace sbe::otf;
 
-namespace sbe {
-namespace otf {
+namespace sbe { namespace otf {
 
 class IrDecoder
 {
@@ -54,15 +53,23 @@ public:
     {
     }
 
-    int decode(char *buffer, std::uint64_t length)
+    int decode(char *irBuffer, std::uint64_t length)
     {
         m_length = length;
+        if (m_length == 0)
+        {
+            return -1;
+        }
+        std::unique_ptr<char[]> buffer(new char[m_length]);
+        m_buffer = std::move(buffer);
+        std::memcpy(m_buffer.get(), irBuffer, m_length);
+
         return decodeIr();
     }
 
     int decode(const char *filename)
     {
-        long fileSize = getFileSize(filename);
+        long long fileSize = getFileSize(filename);
 
         if (fileSize < 0)
         {
@@ -82,7 +89,7 @@ public:
             return -1;
         }
 
-        return decode(m_buffer.get(), m_length);
+        return decodeIr();
     }
 
     std::shared_ptr<std::vector<Token>> header()
@@ -102,7 +109,7 @@ public:
         std::for_each(m_messages.begin(), m_messages.end(),
             [&](std::shared_ptr<std::vector<Token>> tokens)
             {
-                Token& token = tokens->at(0);
+                Token &token = tokens->at(0);
 
                 if (token.signal() == Signal::BEGIN_MESSAGE && token.fieldId() == id && token.tokenVersion() == version)
                 {
@@ -120,7 +127,7 @@ public:
         std::for_each(m_messages.begin(), m_messages.end(),
             [&](std::shared_ptr<std::vector<Token>> tokens)
             {
-                Token& token = tokens->at(0);
+                Token &token = tokens->at(0);
 
                 if (token.signal() == Signal::BEGIN_MESSAGE && token.fieldId() == id)
                 {
@@ -133,7 +140,7 @@ public:
 
 protected:
     // OS specifics
-    static long getFileSize(const char *filename)
+    static long long getFileSize(const char *filename)
     {
         struct stat fileStat;
 
@@ -150,7 +157,7 @@ protected:
         FILE *fptr = ::fopen(filename, "rb");
         std::uint64_t remaining = length;
 
-        if (NULL == fptr)
+        if (nullptr == fptr)
         {
             return -1;
         }
@@ -158,7 +165,8 @@ protected:
         int fd = fileno(fptr);
         while (remaining > 0)
         {
-            long sz = ::read(fd, buffer + (length - remaining), (4098 < remaining) ? 4098 : remaining);
+            unsigned int bytes = static_cast<unsigned int>(4098 < remaining ? 4098 : remaining);
+            long long sz = ::read(fd, buffer + (length - remaining), bytes);
             remaining -= sz;
             if (sz < 0)
             {
@@ -168,7 +176,7 @@ protected:
 
         fclose(fptr);
 
-        return (remaining == 0) ? 0 : -1;
+        return remaining == 0 ? 0 : -1;
     }
 
 private:
@@ -216,12 +224,13 @@ private:
         return 0;
     }
 
-    std::uint64_t decodeAndAddToken(std::shared_ptr<std::vector<Token>>& tokens, std::uint64_t offset)
+    std::uint64_t decodeAndAddToken(std::shared_ptr<std::vector<Token>> &tokens, std::uint64_t offset)
     {
         using namespace uk::co::real_logic::sbe::ir::generated;
 
         TokenCodec tokenCodec;
-        tokenCodec.wrapForDecode(m_buffer.get(), offset, tokenCodec.sbeBlockLength(), tokenCodec.sbeSchemaVersion(), m_length);
+        tokenCodec.wrapForDecode(
+            m_buffer.get(), offset, tokenCodec.sbeBlockLength(), tokenCodec.sbeSchemaVersion(), m_length);
 
         Signal signal = static_cast<Signal>(tokenCodec.signal());
         PrimitiveType type = static_cast<PrimitiveType>(tokenCodec.primitiveType());
@@ -269,11 +278,19 @@ private:
         std::string referencedName(tmpBuffer, tmpLen);
 
         Encoding encoding(
-            type, presence, byteOrder, minValue, maxValue, nullValue, constValue,
-            characterEncoding, epoch, timeUnit, semanticType);
+            type,
+            presence,
+            byteOrder,
+            minValue,
+            maxValue,
+            nullValue,
+            constValue,
+            characterEncoding,
+            epoch,
+            timeUnit,
+            semanticType);
 
-        Token token(
-            tokenOffset, id, version, tokenSize, componentTokenCount, signal, name, description, encoding);
+        Token token(tokenOffset, id, version, tokenSize, componentTokenCount, signal, name, description, encoding);
 
         tokens->push_back(token);
 
@@ -288,7 +305,7 @@ private:
         {
             size += decodeAndAddToken(m_headerTokens, offset + size);
 
-            Token& token = m_headerTokens->back();
+            Token &token = m_headerTokens->back();
 
             if (token.signal() == Signal::END_COMPOSITE)
             {
@@ -309,7 +326,7 @@ private:
         {
             size += decodeAndAddToken(tokensForMessage, offset + size);
 
-            Token& token = tokensForMessage->back();
+            Token &token = tokensForMessage->back();
 
             if (token.signal() == Signal::END_MESSAGE)
             {

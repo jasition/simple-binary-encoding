@@ -1,11 +1,11 @@
 /*
- * Copyright 2013-2018 Real Logic Ltd.
+ * Copyright 2013-2021 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,6 +17,7 @@ package uk.co.real_logic.sbe.otf;
 
 import org.agrona.DirectBuffer;
 import uk.co.real_logic.sbe.PrimitiveType;
+import uk.co.real_logic.sbe.PrimitiveValue;
 import uk.co.real_logic.sbe.ir.Encoding;
 
 import java.nio.ByteOrder;
@@ -169,6 +170,173 @@ public class Types
             case DOUBLE:
                 sb.append(buffer.getDouble(index, encoding.byteOrder()));
                 break;
+        }
+    }
+
+    /**
+     * Append an encoding as a Json String to a {@link StringBuilder}.
+     *
+     * @param sb       to append the encoding to.
+     * @param buffer   containing the encoded value.
+     * @param index    at which the encoded value exists.
+     * @param encoding representing the encoded value.
+     */
+    public static void appendAsJsonString(
+        final StringBuilder sb, final DirectBuffer buffer, final int index, final Encoding encoding)
+    {
+        switch (encoding.primitiveType())
+        {
+            case CHAR:
+                sb.append('\'').append((char)buffer.getByte(index)).append('\'');
+                break;
+
+            case INT8:
+                sb.append(buffer.getByte(index));
+                break;
+
+            case INT16:
+                sb.append(buffer.getShort(index, encoding.byteOrder()));
+                break;
+
+            case INT32:
+                sb.append(buffer.getInt(index, encoding.byteOrder()));
+                break;
+
+            case INT64:
+                sb.append(buffer.getLong(index, encoding.byteOrder()));
+                break;
+
+            case UINT8:
+                sb.append((short)(buffer.getByte(index) & 0xFF));
+                break;
+
+            case UINT16:
+                sb.append(buffer.getShort(index, encoding.byteOrder()) & 0xFFFF);
+                break;
+
+            case UINT32:
+                sb.append(buffer.getInt(index, encoding.byteOrder()) & 0xFFFF_FFFFL);
+                break;
+
+            case UINT64:
+                sb.append(buffer.getLong(index, encoding.byteOrder()));
+                break;
+
+            case FLOAT:
+            {
+                final float value = buffer.getFloat(index, encoding.byteOrder());
+                if (Float.isNaN(value))
+                {
+                    sb.append("0/0");
+                }
+                else if (value == Float.POSITIVE_INFINITY)
+                {
+                    sb.append("1/0");
+                }
+                else if (value == Float.NEGATIVE_INFINITY)
+                {
+                    sb.append("-1/0");
+                }
+                else
+                {
+                    sb.append(value);
+                }
+                break;
+            }
+
+            case DOUBLE:
+            {
+                final double value = buffer.getDouble(index, encoding.byteOrder());
+                if (Double.isNaN(value))
+                {
+                    sb.append("0/0");
+                }
+                else if (value == Double.POSITIVE_INFINITY)
+                {
+                    sb.append("1/0");
+                }
+                else if (value == Double.NEGATIVE_INFINITY)
+                {
+                    sb.append("-1/0");
+                }
+                else
+                {
+                    sb.append(value);
+                }
+                break;
+            }
+        }
+    }
+
+    /**
+     * Append an value as a Json String to a {@link StringBuilder}.
+     *
+     * @param sb       to append the value to.
+     * @param value    to append.
+     * @param encoding representing the encoded value.
+     */
+    public static void appendAsJsonString(final StringBuilder sb, final PrimitiveValue value, final Encoding encoding)
+    {
+        switch (encoding.primitiveType())
+        {
+            case CHAR:
+                sb.append('\'').append((char)value.longValue()).append('\'');
+                break;
+
+            case INT8:
+            case UINT8:
+            case INT16:
+            case UINT16:
+            case INT32:
+            case UINT32:
+            case INT64:
+            case UINT64:
+                sb.append(value.longValue());
+                break;
+
+            case FLOAT:
+            {
+                final float floatValue = (float)value.doubleValue();
+                if (Float.isNaN(floatValue))
+                {
+                    sb.append("0/0");
+                }
+                else if (floatValue == Float.POSITIVE_INFINITY)
+                {
+                    sb.append("1/0");
+                }
+                else if (floatValue == Float.NEGATIVE_INFINITY)
+                {
+                    sb.append("-1/0");
+                }
+                else
+                {
+                    sb.append(value);
+                }
+                break;
+            }
+
+            case DOUBLE:
+            {
+                final double doubleValue = value.doubleValue();
+                if (Double.isNaN(doubleValue))
+                {
+                    sb.append("0/0");
+                }
+                else if (doubleValue == Double.POSITIVE_INFINITY)
+                {
+                    sb.append("1/0");
+                }
+                else if (doubleValue == Double.NEGATIVE_INFINITY)
+                {
+                    sb.append("-1/0");
+                }
+                else
+                {
+                    sb.append(doubleValue);
+                }
+                break;
+            }
         }
     }
 }

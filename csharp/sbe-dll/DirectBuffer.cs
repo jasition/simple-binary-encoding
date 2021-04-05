@@ -9,7 +9,7 @@ namespace Org.SbeTool.Sbe.Dll
     public sealed unsafe class DirectBuffer : IDisposable
     {
         /// <summary>
-        /// Delegate invoked if buffer size is too small. 
+        /// Delegate invoked if buffer size is too small.
         /// </summary>
         /// <param name="existingBufferSize"></param>
         /// <param name="requestedBufferSize"></param>
@@ -66,7 +66,7 @@ namespace Org.SbeTool.Sbe.Dll
         /// <summary>
         /// Creates a DirectBuffer that can later be wrapped
         /// </summary>
-        public DirectBuffer() 
+        public DirectBuffer()
         {
         }
 
@@ -120,7 +120,7 @@ namespace Org.SbeTool.Sbe.Dll
         {
             get { return _capacity; }
         }
-
+        
         /// <summary>
         /// Check that a given limit is not greater than the capacity of a buffer from a given offset.
         /// </summary>
@@ -129,17 +129,26 @@ namespace Org.SbeTool.Sbe.Dll
         {
             if (limit > _capacity)
             {
-                if (bufferOverflow == null)
-                    throw new IndexOutOfRangeException(string.Format("limit={0} is beyond capacity={1}", limit, _capacity));
-
-                var newBuffer = bufferOverflow(_capacity, limit);
-
-                if (newBuffer == null)
-                    throw new IndexOutOfRangeException(string.Format("limit={0} is beyond capacity={1}", limit, _capacity));
-
-                Marshal.Copy((IntPtr)_pBuffer, newBuffer, 0, _capacity);
-                Wrap(newBuffer);
+                TryResizeBuffer(limit);
             }
+        }
+
+        private void TryResizeBuffer(int limit)
+        {
+            if (bufferOverflow == null)
+            {
+                throw new IndexOutOfRangeException("limit=" + limit + " is beyond capacity=" + _capacity);
+            }
+
+            var newBuffer = bufferOverflow(_capacity, limit);
+
+            if (newBuffer == null)
+            {
+                throw new IndexOutOfRangeException("limit=" + limit + " is beyond capacity=" + _capacity);
+            }
+
+            Marshal.Copy((IntPtr)_pBuffer, newBuffer, 0, _capacity);
+            Wrap(newBuffer);
         }
 
         /// <summary>
@@ -570,6 +579,22 @@ namespace Org.SbeTool.Sbe.Dll
         #endregion
 
         /// <summary>
+        /// Creates a <see cref="Span{T}" /> on top of the underlying buffer
+        /// </summary>
+        /// <param name="index">index  in the underlying buffer to start from.</param>
+        /// <param name="length">length of the supplied buffer to use.</param>
+        /// <returns>The new <see cref="Span{T}" /> wrapping the requested memory</returns>
+        public Span<T> AsSpan<T>(int index, int length) => new Span<T>(_pBuffer + index, length);
+
+        /// <summary>
+        /// Creates a <see cref="ReadOnlySpan{T}" /> on top of the underlying buffer
+        /// </summary>
+        /// <param name="index">index  in the underlying buffer to start from.</param>
+        /// <param name="length">length of the supplied buffer to use.</param>
+        /// <returns>The new <see cref="ReadOnlySpan{T}" /> wrapping the requested memory</returns>
+        public ReadOnlySpan<T> AsReadOnlySpan<T>(int index, int length) => new ReadOnlySpan<T>(_pBuffer + index, length);
+
+        /// <summary>
         /// Copies a range of bytes from the underlying into a supplied byte array.
         /// </summary>
         /// <param name="index">index  in the underlying buffer to start from.</param>
@@ -586,6 +611,20 @@ namespace Org.SbeTool.Sbe.Dll
         }
 
         /// <summary>
+        /// Copies a range of bytes from the underlying into a supplied <see cref="Span{T}" />.
+        /// </summary>
+        /// <param name="index">index  in the underlying buffer to start from.</param>
+        /// <param name="destination"><see cref="Span{T}" /> into which the bytes will be copied.</param>
+        /// <returns>count of bytes copied.</returns>
+        public int GetBytes(int index, Span<byte> destination)
+        {
+            int count = Math.Min(destination.Length, _capacity - index);
+            AsReadOnlySpan<byte>(index, count).CopyTo(destination);
+
+            return count;
+        }
+
+        /// <summary>
         /// Writes a byte array into the underlying buffer.
         /// </summary>
         /// <param name="index">index  in the underlying buffer to start from.</param>
@@ -597,6 +636,20 @@ namespace Org.SbeTool.Sbe.Dll
         {
             int count = Math.Min(length, _capacity - index);
             Marshal.Copy(src, offset, (IntPtr)(_pBuffer + index), count);
+
+            return count;
+        }
+
+        /// <summary>
+        /// Writes a <see cref="Span{T}" /> into the underlying buffer.
+        /// </summary>
+        /// <param name="index">index  in the underlying buffer to start from.</param>
+        /// <param name="src">source <see cref="Span{T}" /> to be copied to the underlying buffer.</param>
+        /// <returns>count of bytes copied.</returns>
+        public int SetBytes(int index, ReadOnlySpan<byte> src)
+        {
+            int count = Math.Min(src.Length, _capacity - index);
+            src.CopyTo(AsSpan<byte>(index, count));
 
             return count;
         }
@@ -622,7 +675,9 @@ namespace Org.SbeTool.Sbe.Dll
         private void Dispose(bool disposing)
         {
             if (_disposed)
+            {
                 return;
+            }
 
             FreeGCHandle();
 

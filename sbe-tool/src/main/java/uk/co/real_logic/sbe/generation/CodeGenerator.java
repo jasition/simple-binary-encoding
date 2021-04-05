@@ -1,11 +1,11 @@
 /*
- * Copyright 2013-2018 Real Logic Ltd.
+ * Copyright 2013-2021 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,15 +20,9 @@ import java.io.IOException;
 /**
  * Abstraction for code generators to implement.
  */
+@FunctionalInterface
 public interface CodeGenerator
 {
-    /**
-     * Class name to be used for visitor pattern that accesses the message headerStructure.
-     */
-    String MESSAGE_HEADER_ENCODER_TYPE = "MessageHeaderEncoder";
-
-    String MESSAGE_HEADER_DECODER_TYPE = "MessageHeaderDecoder";
-
     /**
      * Generate the complete set of types and messages for a schema.
      *

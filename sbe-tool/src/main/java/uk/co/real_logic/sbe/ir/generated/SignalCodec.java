@@ -1,6 +1,10 @@
-/* Generated SBE (Simple Binary Encoding) message codec */
+/* Generated SBE (Simple Binary Encoding) message codec. */
 package uk.co.real_logic.sbe.ir.generated;
 
+
+/**
+ * Token signal type in IR
+ */
 public enum SignalCodec
 {
     BEGIN_MESSAGE((short)1),
@@ -49,11 +53,22 @@ public enum SignalCodec
         this.value = value;
     }
 
+    /**
+     * The raw encoded value in the Java type representation.
+     *
+     * @return the raw value encoded.
+     */
     public short value()
     {
         return value;
     }
 
+    /**
+     * Lookup the enum value representing the value.
+     *
+     * @param value encoded to be looked up.
+     * @return the enum value representing the value.
+     */
     public static SignalCodec get(final short value)
     {
         switch (value)
@@ -75,11 +90,7 @@ public enum SignalCodec
             case 15: return BEGIN_VAR_DATA;
             case 16: return END_VAR_DATA;
             case 17: return ENCODING;
-        }
-
-        if ((short)255 == value)
-        {
-            return NULL_VAL;
+            case 255: return NULL_VAL;
         }
 
         throw new IllegalArgumentException("Unknown value: " + value);

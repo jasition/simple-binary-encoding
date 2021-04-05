@@ -1,11 +1,11 @@
 /*
- * Copyright 2013-2018 Real Logic Ltd.
+ * Copyright 2013-2021 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -21,8 +21,7 @@
 
 #include "Encoding.h"
 
-namespace sbe {
-namespace otf {
+namespace sbe { namespace otf {
 
 /// Constants used for holding Token signals
 enum class Signal : int
@@ -78,17 +77,16 @@ public:
         Signal signal,
         std::string name,
         std::string description,
-        Encoding encoding)
-        :
+        Encoding encoding) :
         m_offset(offset),
         m_fieldId(fieldId),
         m_version(version),
         m_encodedLength(encodedLength),
         m_componentTokenCount(componentTokenCount),
         m_signal(signal),
-        m_name(name),
-        m_description(description),
-        m_encoding(encoding)
+        m_name(std::move(name)),
+        m_description(std::move(description)),
+        m_encoding(std::move(encoding))
     {
     }
 
@@ -97,12 +95,12 @@ public:
         return m_signal;
     }
 
-    inline const std::string& name() const
+    inline const std::string &name() const
     {
         return m_name;
     }
 
-    inline const std::string& description() const
+    inline const std::string &description() const
     {
         return m_description;
     }
@@ -117,7 +115,7 @@ public:
         return m_version;
     }
 
-    inline const Encoding& encoding() const
+    inline const Encoding &encoding() const
     {
         return m_encoding;
     }

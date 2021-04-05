@@ -1,11 +1,11 @@
 /*
- * Copyright 2013-2018 Real Logic Ltd.
+ * Copyright 2013-2021 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,22 +17,13 @@ package uk.co.real_logic.sbe;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
-import uk.co.real_logic.sbe.generation.CodeGenerator;
-import uk.co.real_logic.sbe.generation.TargetCodeGenerator;
-import uk.co.real_logic.sbe.generation.TargetCodeGeneratorLoader;
-import uk.co.real_logic.sbe.ir.Ir;
-import uk.co.real_logic.sbe.ir.IrDecoder;
-import uk.co.real_logic.sbe.ir.IrEncoder;
-import uk.co.real_logic.sbe.xml.IrGenerator;
-import uk.co.real_logic.sbe.xml.MessageSchema;
-import uk.co.real_logic.sbe.xml.ParserOptions;
-import uk.co.real_logic.sbe.xml.XmlSchemaParser;
+import org.xml.sax.InputSource;
+import uk.co.real_logic.sbe.generation.*;
+import uk.co.real_logic.sbe.ir.*;
+import uk.co.real_logic.sbe.xml.*;
 
-import java.io.BufferedInputStream;
-import java.io.File;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.io.*;
+import java.nio.file.*;
 
 /**
  * A tool for running the SBE parser, validator, and code generator.
@@ -50,7 +41,7 @@ import java.nio.file.Paths;
  * <li><b>sbe.validation.stop.on.error</b>: Should the parser stop on first error encountered? Defaults to false.</li>
  * <li><b>sbe.validation.warnings.fatal</b>: Are warnings in parsing considered fatal? Defaults to false.</li>
  * <li>
- * <b>sbe.validation.suppress.output</b>: Should the parser suppress output during validation? Defaults to false.
+ *     <b>sbe.validation.suppress.output</b>: Should the parser suppress output during validation? Defaults to false.
  * </li>
  * <li><b>sbe.generate.stubs</b>: Generate stubs or not. Defaults to true.</li>
  * <li><b>sbe.target.language</b>: Target language for code generation, defaults to Java.</li>
@@ -62,10 +53,13 @@ import java.nio.file.Paths;
  * <li><b>sbe.target.namespace</b>: Namespace for the generated code to override schema package.</li>
  * <li><b>sbe.cpp.namespaces.collapse</b>: Namespace for the generated code to override schema package.</li>
  * <li>
- * <b>sbe.java.generate.group-order.annotation</b>: Should the GroupOrder annotation be added to generated stubs.
+ *     <b>sbe.java.generate.group-order.annotation</b>: Should the GroupOrder annotation be added to generated stubs.
  * </li>
+ * <li><b>sbe.csharp.generate.namespace.dir</b>: Should a directory be created for the namespace under
+ * the output directory? Defaults to true</li>
  * <li><b>sbe.keyword.append.token</b>: Token to be appended to keywords.</li>
- * <li><b>sbe.decode.unknown.enum.values</b>: Support unknown decoded enum values.</li>
+ * <li><b>sbe.decode.unknown.enum.values</b>: Support unknown decoded enum values. Defaults to false.</li>
+ * <li><b>sbe.xinclude.aware</b>: Is XInclude supported for the schema. Defaults to false.</li>
  * </ul>
  */
 public class SbeTool
@@ -86,22 +80,22 @@ public class SbeTool
     public static final String JAVA_DEFAULT_DECODING_BUFFER_TYPE = DirectBuffer.class.getName();
 
     /**
-     * Boolean system property to control throwing exceptions on all errors
+     * Boolean system property to control throwing exceptions on all errors.
      */
     public static final String VALIDATION_STOP_ON_ERROR = "sbe.validation.stop.on.error";
 
     /**
-     * Boolean system property to control whether to consider warnings fatal and treat them as errors
+     * Boolean system property to control whether to consider warnings fatal and treat them as errors.
      */
     public static final String VALIDATION_WARNINGS_FATAL = "sbe.validation.warnings.fatal";
 
     /**
-     * System property to hold XSD to validate message specification against
+     * System property to hold XSD to validate message specification against.
      */
     public static final String VALIDATION_XSD = "sbe.validation.xsd";
 
     /**
-     * Boolean system property to control suppressing output on all errors and warnings
+     * Boolean system property to control suppressing output on all errors and warnings.
      */
     public static final String VALIDATION_SUPPRESS_OUTPUT = "sbe.validation.suppress.output";
 
@@ -109,6 +103,11 @@ public class SbeTool
      * Boolean system property to turn on or off generation of stubs. Defaults to true.
      */
     public static final String GENERATE_STUBS = "sbe.generate.stubs";
+
+    /**
+     * Boolean system property to control is XInclude is supported. Defaults to false.
+     */
+    public static final String XINCLUDE_AWARE = "sbe.xinclude.aware";
 
     /**
      * Target language for generated code.
@@ -121,7 +120,7 @@ public class SbeTool
     public static final String GENERATE_IR = "sbe.generate.ir";
 
     /**
-     * Output directory for generated code
+     * Output directory for generated code.
      */
     public static final String OUTPUT_DIR = "sbe.output.dir";
 
@@ -141,12 +140,12 @@ public class SbeTool
     public static final String JAVA_GENERATE_INTERFACES = "sbe.java.generate.interfaces";
 
     /**
-     * Specifies the name of the Java mutable buffer to wrap
+     * Specifies the name of the Java mutable buffer to wrap.
      */
     public static final String JAVA_ENCODING_BUFFER_TYPE = "sbe.java.encoding.buffer.type";
 
     /**
-     * Specifies the name of the Java read only buffer to wrap
+     * Specifies the name of the Java read only buffer to wrap.
      */
     public static final String JAVA_DECODING_BUFFER_TYPE = "sbe.java.decoding.buffer.type";
 
@@ -154,6 +153,12 @@ public class SbeTool
      * Should the {@link uk.co.real_logic.sbe.codec.java.GroupOrder} annotation be added to generated stubs.
      */
     public static final String JAVA_GROUP_ORDER_ANNOTATION = "sbe.java.generate.group-order.annotation";
+
+    /**
+     * Boolean system property to turn on or off generation of namespace directories during csharp code generation.
+     * Defaults to true
+     */
+    public static final String CSHARP_GENERATE_NAMESPACE_DIR = "sbe.csharp.generate.namespace.dir";
 
     /**
      * Specifies token that should be appended to keywords to avoid compilation errors.
@@ -221,10 +226,8 @@ public class SbeTool
             {
                 final File inputFile = new File(fileName);
                 final String inputFilename = inputFile.getName();
-
                 final int nameEnd = inputFilename.lastIndexOf('.');
                 final String namePart = inputFilename.substring(0, nameEnd);
-
                 final File fullPath = new File(outputDirName, namePart + ".sbeir");
 
                 try (IrEncoder irEncoder = new IrEncoder(fullPath.getAbsolutePath(), ir))
@@ -238,23 +241,37 @@ public class SbeTool
     /**
      * Validate the SBE Schema against the XSD.
      *
-     * @param sbeSchemaFilename to be validated
-     * @param xsdFilename       XSD against which to validate
-     * @throws Exception if an error occurs while validating
+     * @param sbeSchemaFilename to be validated.
+     * @param xsdFilename       XSD against which to validate.
+     * @throws Exception if an error occurs while validating.
      */
     public static void validateAgainstSchema(final String sbeSchemaFilename, final String xsdFilename)
         throws Exception
     {
-        try (InputStream in = new BufferedInputStream(Files.newInputStream(Paths.get(sbeSchemaFilename))))
+        final ParserOptions.Builder optionsBuilder = ParserOptions.builder()
+            .xsdFilename(System.getProperty(VALIDATION_XSD))
+            .xIncludeAware(Boolean.parseBoolean(System.getProperty(XINCLUDE_AWARE)))
+            .stopOnError(Boolean.parseBoolean(System.getProperty(VALIDATION_STOP_ON_ERROR)))
+            .warningsFatal(Boolean.parseBoolean(System.getProperty(VALIDATION_WARNINGS_FATAL)))
+            .suppressOutput(Boolean.parseBoolean(System.getProperty(VALIDATION_SUPPRESS_OUTPUT)));
+
+        final Path path = Paths.get(sbeSchemaFilename);
+        try (InputStream in = new BufferedInputStream(Files.newInputStream(path)))
         {
-            XmlSchemaParser.validate(xsdFilename, in);
+            final InputSource inputSource = new InputSource(in);
+            if (path.toAbsolutePath().getParent() != null)
+            {
+                inputSource.setSystemId(path.toUri().toString());
+            }
+
+            XmlSchemaParser.validate(xsdFilename, inputSource, optionsBuilder.build());
         }
     }
 
     /**
      * Parse the message schema specification.
      *
-     * @param sbeSchemaFilename file containing the SBE specification for the
+     * @param sbeSchemaFilename file containing the SBE specification to be parsed.
      * @return the parsed {@link MessageSchema} for the specification found in the file.
      * @throws Exception if an error occurs when parsing the specification.
      */
@@ -263,13 +280,21 @@ public class SbeTool
     {
         final ParserOptions.Builder optionsBuilder = ParserOptions.builder()
             .xsdFilename(System.getProperty(VALIDATION_XSD))
+            .xIncludeAware(Boolean.parseBoolean(System.getProperty(XINCLUDE_AWARE)))
             .stopOnError(Boolean.parseBoolean(System.getProperty(VALIDATION_STOP_ON_ERROR)))
             .warningsFatal(Boolean.parseBoolean(System.getProperty(VALIDATION_WARNINGS_FATAL)))
             .suppressOutput(Boolean.parseBoolean(System.getProperty(VALIDATION_SUPPRESS_OUTPUT)));
 
-        try (InputStream in = new BufferedInputStream(Files.newInputStream(Paths.get(sbeSchemaFilename))))
+        final Path path = Paths.get(sbeSchemaFilename);
+        try (InputStream in = new BufferedInputStream(Files.newInputStream(path)))
         {
-            return XmlSchemaParser.parse(in, optionsBuilder.build());
+            final InputSource inputSource = new InputSource(in);
+            if (path.toAbsolutePath().getParent() != null)
+            {
+                inputSource.setSystemId(path.toUri().toString());
+            }
+
+            return XmlSchemaParser.parse(inputSource, optionsBuilder.build());
         }
     }
 

@@ -1,14 +1,15 @@
-/* Generated SBE (Simple Binary Encoding) message codec */
+/* Generated SBE (Simple Binary Encoding) message codec. */
 package uk.co.real_logic.sbe.ir.generated;
 
 import org.agrona.MutableDirectBuffer;
 import org.agrona.DirectBuffer;
 
+
 /**
  * Frame Header for start of encoding IR
  */
 @SuppressWarnings("all")
-public class FrameCodecEncoder
+public final class FrameCodecEncoder
 {
     public static final int BLOCK_LENGTH = 12;
     public static final int TEMPLATE_ID = 1;
@@ -18,8 +19,9 @@ public class FrameCodecEncoder
 
     private final FrameCodecEncoder parentMessage = this;
     private MutableDirectBuffer buffer;
-    protected int offset;
-    protected int limit;
+    private int initialOffset;
+    private int offset;
+    private int limit;
 
     public int sbeBlockLength()
     {
@@ -51,6 +53,11 @@ public class FrameCodecEncoder
         return buffer;
     }
 
+    public int initialOffset()
+    {
+        return initialOffset;
+    }
+
     public int offset()
     {
         return offset;
@@ -62,6 +69,7 @@ public class FrameCodecEncoder
         {
             this.buffer = buffer;
         }
+        this.initialOffset = offset;
         this.offset = offset;
         limit(offset + BLOCK_LENGTH);
 
@@ -118,12 +126,9 @@ public class FrameCodecEncoder
 
     public static String irIdMetaAttribute(final MetaAttribute metaAttribute)
     {
-        switch (metaAttribute)
+        if (MetaAttribute.PRESENCE == metaAttribute)
         {
-            case EPOCH: return "";
-            case TIME_UNIT: return "";
-            case SEMANTIC_TYPE: return "";
-            case PRESENCE: return "required";
+            return "required";
         }
 
         return "";
@@ -173,12 +178,9 @@ public class FrameCodecEncoder
 
     public static String irVersionMetaAttribute(final MetaAttribute metaAttribute)
     {
-        switch (metaAttribute)
+        if (MetaAttribute.PRESENCE == metaAttribute)
         {
-            case EPOCH: return "";
-            case TIME_UNIT: return "";
-            case SEMANTIC_TYPE: return "";
-            case PRESENCE: return "required";
+            return "required";
         }
 
         return "";
@@ -228,12 +230,9 @@ public class FrameCodecEncoder
 
     public static String schemaVersionMetaAttribute(final MetaAttribute metaAttribute)
     {
-        switch (metaAttribute)
+        if (MetaAttribute.PRESENCE == metaAttribute)
         {
-            case EPOCH: return "";
-            case TIME_UNIT: return "";
-            case SEMANTIC_TYPE: return "";
-            case PRESENCE: return "required";
+            return "required";
         }
 
         return "";
@@ -273,12 +272,9 @@ public class FrameCodecEncoder
 
     public static String packageNameMetaAttribute(final MetaAttribute metaAttribute)
     {
-        switch (metaAttribute)
+        if (MetaAttribute.PRESENCE == metaAttribute)
         {
-            case EPOCH: return "unix";
-            case TIME_UNIT: return "nanosecond";
-            case SEMANTIC_TYPE: return "";
-            case PRESENCE: return "required";
+            return "required";
         }
 
         return "";
@@ -326,7 +322,7 @@ public class FrameCodecEncoder
         final byte[] bytes;
         try
         {
-            bytes = value.isEmpty() ? org.agrona.collections.ArrayUtil.EMPTY_BYTE_ARRAY : value.getBytes("UTF-8");
+            bytes = null == value || value.isEmpty() ? org.agrona.collections.ArrayUtil.EMPTY_BYTE_ARRAY : value.getBytes("UTF-8");
         }
         catch (final java.io.UnsupportedEncodingException ex)
         {
@@ -360,12 +356,9 @@ public class FrameCodecEncoder
 
     public static String namespaceNameMetaAttribute(final MetaAttribute metaAttribute)
     {
-        switch (metaAttribute)
+        if (MetaAttribute.PRESENCE == metaAttribute)
         {
-            case EPOCH: return "unix";
-            case TIME_UNIT: return "nanosecond";
-            case SEMANTIC_TYPE: return "";
-            case PRESENCE: return "required";
+            return "required";
         }
 
         return "";
@@ -413,7 +406,7 @@ public class FrameCodecEncoder
         final byte[] bytes;
         try
         {
-            bytes = value.isEmpty() ? org.agrona.collections.ArrayUtil.EMPTY_BYTE_ARRAY : value.getBytes("UTF-8");
+            bytes = null == value || value.isEmpty() ? org.agrona.collections.ArrayUtil.EMPTY_BYTE_ARRAY : value.getBytes("UTF-8");
         }
         catch (final java.io.UnsupportedEncodingException ex)
         {
@@ -447,12 +440,9 @@ public class FrameCodecEncoder
 
     public static String semanticVersionMetaAttribute(final MetaAttribute metaAttribute)
     {
-        switch (metaAttribute)
+        if (MetaAttribute.PRESENCE == metaAttribute)
         {
-            case EPOCH: return "unix";
-            case TIME_UNIT: return "nanosecond";
-            case SEMANTIC_TYPE: return "";
-            case PRESENCE: return "required";
+            return "required";
         }
 
         return "";
@@ -500,7 +490,7 @@ public class FrameCodecEncoder
         final byte[] bytes;
         try
         {
-            bytes = value.isEmpty() ? org.agrona.collections.ArrayUtil.EMPTY_BYTE_ARRAY : value.getBytes("UTF-8");
+            bytes = null == value || value.isEmpty() ? org.agrona.collections.ArrayUtil.EMPTY_BYTE_ARRAY : value.getBytes("UTF-8");
         }
         catch (final java.io.UnsupportedEncodingException ex)
         {
@@ -522,17 +512,26 @@ public class FrameCodecEncoder
         return this;
     }
 
-
     public String toString()
     {
-        return appendTo(new StringBuilder(100)).toString();
+        if (null == buffer)
+        {
+            return "";
+        }
+
+        return appendTo(new StringBuilder()).toString();
     }
 
     public StringBuilder appendTo(final StringBuilder builder)
     {
-        FrameCodecDecoder writer = new FrameCodecDecoder();
-        writer.wrap(buffer, offset, BLOCK_LENGTH, SCHEMA_VERSION);
+        if (null == buffer)
+        {
+            return builder;
+        }
 
-        return writer.appendTo(builder);
+        final FrameCodecDecoder decoder = new FrameCodecDecoder();
+        decoder.wrap(buffer, initialOffset, BLOCK_LENGTH, SCHEMA_VERSION);
+
+        return decoder.appendTo(builder);
     }
 }

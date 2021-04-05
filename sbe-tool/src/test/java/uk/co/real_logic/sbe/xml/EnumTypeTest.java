@@ -1,11 +1,11 @@
 /*
- * Copyright 2013-2018 Real Logic Ltd.
+ * Copyright 2013-2021 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,13 +15,15 @@
  */
 package uk.co.real_logic.sbe.xml;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 import uk.co.real_logic.sbe.PrimitiveType;
 import uk.co.real_logic.sbe.PrimitiveValue;
-import uk.co.real_logic.sbe.TestUtil;
+import uk.co.real_logic.sbe.Tests;
 
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -31,20 +33,20 @@ import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
+import static org.junit.jupiter.api.Assertions.*;
 import static uk.co.real_logic.sbe.xml.XmlSchemaParser.parse;
 
 public class EnumTypeTest
 {
     @Test
-    public void shouldHandleBinaryEnumType()
-        throws Exception
+    public void shouldHandleBinaryEnumType() throws Exception
     {
         final String testXmlString =
             "<types>" +
@@ -65,8 +67,7 @@ public class EnumTypeTest
     }
 
     @Test
-    public void shouldHandleBooleanEnumType()
-        throws Exception
+    public void shouldHandleBooleanEnumType() throws Exception
     {
         final String testXmlString =
             "<types>" +
@@ -87,8 +88,7 @@ public class EnumTypeTest
     }
 
     @Test
-    public void shouldHandleOptionalBooleanEnumType()
-        throws Exception
+    public void shouldHandleOptionalBooleanEnumType() throws Exception
     {
         final String nullValueStr = "255";
         final String testXmlString =
@@ -112,8 +112,7 @@ public class EnumTypeTest
     }
 
     @Test
-    public void shouldHandleEnumTypeList()
-        throws Exception
+    public void shouldHandleEnumTypeList() throws Exception
     {
         final String testXmlString =
             "<types>" +
@@ -157,8 +156,7 @@ public class EnumTypeTest
     }
 
     @Test
-    public void shouldHandleCharEnumEncodingType()
-        throws Exception
+    public void shouldHandleCharEnumEncodingType() throws Exception
     {
         final String testXmlString =
             "<types>" +
@@ -180,9 +178,8 @@ public class EnumTypeTest
         assertThat(e.getValidValue("Eee").primitiveValue(), is(PrimitiveValue.parse("E", PrimitiveType.CHAR)));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void shouldThrowExceptionWhenIllegalEncodingTypeSpecified()
-        throws Exception
     {
         final String testXmlString =
             "<types>" +
@@ -192,12 +189,12 @@ public class EnumTypeTest
             "</enum>" +
             "</types>";
 
-        parseTestXmlWithMap("/types/enum", testXmlString);
+        assertThrows(IllegalArgumentException.class, () ->
+            parseTestXmlWithMap("/types/enum", testXmlString));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void shouldThrowExceptionWhenDuplicateValueSpecified()
-        throws Exception
     {
         final String testXmlString =
             "<types>" +
@@ -208,12 +205,12 @@ public class EnumTypeTest
             "</enum>" +
             "</types>";
 
-        parseTestXmlWithMap("/types/enum", testXmlString);
+        assertThrows(IllegalArgumentException.class, () ->
+            parseTestXmlWithMap("/types/enum", testXmlString));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void shouldThrowExceptionWhenDuplicateNameSpecified()
-        throws Exception
     {
         final String testXmlString =
             "<types>" +
@@ -224,14 +221,69 @@ public class EnumTypeTest
             "</enum>" +
             "</types>";
 
-        parseTestXmlWithMap("/types/enum", testXmlString);
+        assertThrows(IllegalArgumentException.class, () ->
+            parseTestXmlWithMap("/types/enum", testXmlString));
     }
 
     @Test
-    public void shouldHandleEncodingTypesWithNamedTypes()
-        throws Exception
+    public void shouldThrowExceptionWhenImplicitNullValueIsUsed()
     {
-        final MessageSchema schema = parse(TestUtil.getLocalResource(
+        final String testXmlString =
+            "<types>" +
+            "<enum name=\"test\" encodingType=\"uint8\">" +
+            "    <validValue name=\"one\">1</validValue>" +
+            "    <validValue name=\"invalidNullValue\">255</validValue>" +
+            "</enum>" +
+            "</types>";
+
+        assertThrows(IllegalArgumentException.class, () ->
+            parseTestXmlWithMap("/types/enum", testXmlString));
+    }
+
+    @Test
+    public void shouldThrowExceptionWhenExplicitNullValueIsUsed()
+    {
+        final String testXmlString =
+            "<types>" +
+            "<enum name=\"test\" encodingType=\"uint8\" presence=\"optional\" nullValue=\"5\">" +
+            "    <validValue name=\"one\">1</validValue>" +
+            "    <validValue name=\"invalidNullValue\">5</validValue>" +
+            "</enum>" +
+            "</types>";
+
+        assertThrows(IllegalArgumentException.class, () ->
+            parseTestXmlWithMap("/types/enum", testXmlString));
+    }
+
+    @ParameterizedTest
+    @ValueSource(longs = { (long)Integer.MIN_VALUE - 1, (long)Integer.MAX_VALUE + 1 })
+    public void shouldThrowExceptionWhenIntValueIsOutOfRange(final long value)
+    {
+        final String testXmlString =
+            "<types>" +
+            "<enum name=\"test\" encodingType=\"int32\">" +
+            "    <validValue name=\"X\">" + value + "</validValue>" +
+            "</enum>" +
+            "</types>";
+
+        final NumberFormatException exception = assertThrows(NumberFormatException.class, () ->
+            parseTestXmlWithMap("/types/enum", testXmlString));
+        assertEquals("For input string: \"" + value + "\"", exception.getMessage());
+    }
+
+    @Test
+    public void shouldThrowExceptionIfEnumValueIsOutOfCustomValueRange() throws IOException
+    {
+        final InputStream file = Tests.getLocalResource("error-handler-enum-violates-min-max-value-range.xml");
+        final IllegalStateException exception = assertThrows(IllegalStateException.class,
+            () -> parse(file, ParserOptions.builder().suppressOutput(true).build()));
+        assertEquals("had 4 errors", exception.getMessage());
+    }
+
+    @Test
+    public void shouldHandleEncodingTypesWithNamedTypes() throws Exception
+    {
+        final MessageSchema schema = parse(Tests.getLocalResource(
             "encoding-types-schema.xml"), ParserOptions.DEFAULT);
         final List<Field> fields = schema.getMessage(1).fields();
 

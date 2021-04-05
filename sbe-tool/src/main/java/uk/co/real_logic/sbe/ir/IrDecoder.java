@@ -1,11 +1,11 @@
 /*
- * Copyright 2013-2018 Real Logic Ltd.
+ * Copyright 2013-2021 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -34,6 +34,9 @@ import java.util.List;
 import static java.nio.file.StandardOpenOption.READ;
 import static uk.co.real_logic.sbe.ir.IrUtil.*;
 
+/**
+ * Decoder for encoded {@link Ir} representing an SBE schema which can be read from a buffer or file.
+ */
 public class IrDecoder implements AutoCloseable
 {
     private static final int CAPACITY = 4096;
@@ -53,6 +56,11 @@ public class IrDecoder implements AutoCloseable
     private final byte[] valArray = new byte[CAPACITY];
     private final MutableDirectBuffer valBuffer = new UnsafeBuffer(valArray);
 
+    /**
+     * Construct a {@link Ir} decoder by opening a file for a given name.
+     *
+     * @param fileName containing the encoded {@link Ir}.
+     */
     public IrDecoder(final String fileName)
     {
         try
@@ -70,6 +78,11 @@ public class IrDecoder implements AutoCloseable
         }
     }
 
+    /**
+     * Construct a {@link Ir} decoder for data encoded in a {@link ByteBuffer}.
+     *
+     * @param buffer containing the serialised {@link Ir}.
+     */
     public IrDecoder(final ByteBuffer buffer)
     {
         channel = null;
@@ -78,11 +91,19 @@ public class IrDecoder implements AutoCloseable
         offset = 0;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void close()
     {
         CloseHelper.quietClose(channel);
     }
 
+    /**
+     * Decode the serialised {@link Ir} and return the decoded instance.
+     *
+     * @return the decoded serialised {@link Ir} instance.
+     */
     public Ir decode()
     {
         decodeFrame();
@@ -100,7 +121,8 @@ public class IrDecoder implements AutoCloseable
         }
 
         final ByteOrder byteOrder = tokens.size() > 0 ? tokens.get(0).encoding().byteOrder() : null;
-        final Ir ir = new Ir(irPackageName, irNamespaceName, irId, irVersion, semanticVersion, byteOrder, irHeader);
+        final Ir ir = new Ir(
+            irPackageName, irNamespaceName, irId, irVersion, null, semanticVersion, byteOrder, irHeader);
 
         for (int size = tokens.size(); i < size; i++)
         {

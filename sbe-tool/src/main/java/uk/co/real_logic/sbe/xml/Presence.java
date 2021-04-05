@@ -1,11 +1,11 @@
 /*
- * Copyright 2013-2018 Real Logic Ltd.
+ * Copyright 2013-2021 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -35,6 +35,8 @@ public enum Presence
      */
     OPTIONAL("optional");
 
+    private static final Presence[] VALUES = values();
+
     private final String value;
 
     Presence(final String value)
@@ -61,7 +63,7 @@ public enum Presence
      */
     public static Presence get(final String name)
     {
-        for (final Presence p : values())
+        for (final Presence p : VALUES)
         {
             if (p.value.equals(name))
             {

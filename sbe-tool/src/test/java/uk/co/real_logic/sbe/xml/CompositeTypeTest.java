@@ -1,11 +1,11 @@
 /*
- * Copyright 2013-2018 Real Logic Ltd.
+ * Copyright 2013-2021 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,7 +15,7 @@
  */
 package uk.co.real_logic.sbe.xml;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
@@ -33,14 +33,14 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class CompositeTypeTest
 {
     @Test
-    public void shouldHandleDecimalCompositeType()
-        throws Exception
+    public void shouldHandleDecimalCompositeType() throws Exception
     {
         final String testXmlString =
             "<types>" +
@@ -64,8 +64,7 @@ public class CompositeTypeTest
     }
 
     @Test
-    public void shouldHandleDecimal32CompositeType()
-        throws Exception
+    public void shouldHandleDecimal32CompositeType() throws Exception
     {
         final String testXmlString =
             "<types>" +
@@ -91,8 +90,7 @@ public class CompositeTypeTest
     }
 
     @Test
-    public void shouldHandleDecimal64CompositeType()
-        throws Exception
+    public void shouldHandleDecimal64CompositeType() throws Exception
     {
         final String testXmlString =
             "<types>" +
@@ -117,8 +115,7 @@ public class CompositeTypeTest
     }
 
     @Test
-    public void shouldHandleCompositeTypeList()
-        throws Exception
+    public void shouldHandleCompositeTypeList() throws Exception
     {
         final String testXmlString =
             "<types>" +
@@ -137,8 +134,7 @@ public class CompositeTypeTest
     }
 
     @Test
-    public void shouldHandleCompositeHasNullableType()
-        throws Exception
+    public void shouldHandleCompositeHasNullableType() throws Exception
     {
         final String nullValStr = "9223372036854775807";
         final String testXmlString =
@@ -158,9 +154,8 @@ public class CompositeTypeTest
         assertThat(mantissa.nullValue(), is(PrimitiveValue.parse(nullValStr, PrimitiveType.INT64)));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void shouldThrowExceptionWhenCompositeTypeHasTypeNameDuplicates()
-        throws Exception
     {
         final String testXmlString =
             "<types>" +
@@ -171,7 +166,8 @@ public class CompositeTypeTest
             "</composite>" +
             "</types>";
 
-        parseTestXmlWithMap("/types/composite", testXmlString);
+        assertThrows(IllegalArgumentException.class,
+            () -> parseTestXmlWithMap("/types/composite", testXmlString));
     }
 
     private static Map<String, Type> parseTestXmlWithMap(final String xPathExpr, final String xml)

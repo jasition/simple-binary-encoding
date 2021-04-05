@@ -1,11 +1,11 @@
 /*
- * Copyright 2013-2018 Real Logic Ltd.
+ * Copyright 2013-2021 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -24,7 +24,7 @@ import java.util.*;
 import java.util.regex.Pattern;
 
 /**
- * Intermediate representation of SBE messages to be used for the generation of encoders and decoders
+ * Intermediate Representation (IR) of SBE messages to be used for the generation of encoders and decoders
  * as stubs in various languages.
  */
 public class Ir
@@ -33,6 +33,7 @@ public class Ir
     private final String namespaceName;
     private final int id;
     private final int version;
+    private final String description;
     private final String semanticVersion;
     private final ByteOrder byteOrder;
 
@@ -48,7 +49,8 @@ public class Ir
      * @param packageName     that should be applied to generated code.
      * @param namespaceName   that should be applied to generated code.
      * @param id              identifier for the schema.
-     * @param version         of the schema
+     * @param version         of the schema.
+     * @param description     of the schema.
      * @param semanticVersion semantic version for mapping to the application domain.
      * @param byteOrder       byte order for all types in the schema.
      * @param headerTokens    representing the message headerStructure.
@@ -58,6 +60,7 @@ public class Ir
         final String namespaceName,
         final int id,
         final int version,
+        final String description,
         final String semanticVersion,
         final ByteOrder byteOrder,
         final List<Token> headerTokens)
@@ -69,6 +72,7 @@ public class Ir
         this.namespaceName = namespaceName;
         this.id = id;
         this.version = version;
+        this.description = description;
         this.semanticVersion = semanticVersion;
         this.byteOrder = byteOrder;
         this.headerStructure = new HeaderStructure(new ArrayList<>(headerTokens));
@@ -201,6 +205,16 @@ public class Ir
     public int version()
     {
         return version;
+    }
+
+    /**
+     * Get the description for the schema.
+     *
+     * @return the description for the schema.
+     */
+    public String description()
+    {
+        return description;
     }
 
     /**

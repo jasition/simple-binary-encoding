@@ -4,7 +4,7 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-// http://www.apache.org/licenses/LICENSE-2.0
+// https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -34,7 +34,7 @@ namespace Org.SbeTool.Sbe.Tests
             _issue435 = new Issue435.Issue435();
             _messageHeader = new Issue435.MessageHeader();
 
-            _messageHeader.Wrap(_directBuffer, 0, Issue435.Issue435.SchemaVersion);
+            _messageHeader.Wrap(_directBuffer, 0, Issue435.MessageHeader.SbeSchemaVersion);
             _messageHeader.BlockLength = Issue435.Issue435.BlockLength;
             _messageHeader.SchemaId = Issue435.Issue435.SchemaId;
             _messageHeader.TemplateId = Issue435.Issue435.TemplateId;

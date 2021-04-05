@@ -1,11 +1,11 @@
 /*
- * Copyright 2013-2018 Real Logic Ltd.
+ * Copyright 2013-2021 Real Logic Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -23,133 +23,131 @@
 
 using namespace sbe::otf;
 
-namespace sbe {
-namespace otf {
-namespace OtfMessageDecoder {
+namespace sbe { namespace otf { namespace OtfMessageDecoder {
 
 typedef std::function<void(Token& token)> on_begin_message_t;
 
 typedef std::function<void(Token& token)> on_end_message_t;
 
 typedef std::function<void(
-    Token& fieldToken,
+    Token &fieldToken,
     const char *buffer,
-    Token& typeToken,
+    Token &typeToken,
     std::uint64_t actingVersion)> on_encoding_t;
 
 typedef std::function<void(
-    Token& fieldToken,
+    Token &fieldToken,
     const char *buffer,
-    std::vector<Token>& tokens,
+    std::vector<Token> &tokens,
     std::size_t fromIndex,
     std::size_t toIndex,
     std::uint64_t actingVersion)> on_enum_t;
 
 typedef std::function<void(
-    Token& fieldToken,
+    Token &fieldToken,
     const char *buffer,
-    std::vector<Token>& tokens,
+    std::vector<Token> &tokens,
     std::size_t fromIndex,
     std::size_t toIndex,
     std::uint64_t actingVersion)> on_bit_set_t;
 
 typedef std::function<void(
-    Token& fieldToken,
-    std::vector<Token>& tokens,
+    Token &fieldToken,
+    std::vector<Token> &tokens,
     std::size_t fromIndex,
     std::size_t toIndex)> on_begin_composite_t;
 
 typedef std::function<void(
-    Token& fieldToken,
-    std::vector<Token>& tokens,
+    Token &fieldToken,
+    std::vector<Token> &tokens,
     std::size_t fromIndex,
     std::size_t toIndex)> on_end_composite_t;
 
 typedef std::function<void(
-    Token& token,
+    Token &token,
     std::uint64_t numInGroup)> on_group_header_t;
 
 typedef std::function<void(
-    Token& token,
+    Token &token,
     std::uint64_t groupIndex,
     std::uint64_t numInGroup)> on_begin_group_t;
 
 typedef std::function<void(
-    Token& token,
+    Token &token,
     std::uint64_t groupIndex,
     std::uint64_t numInGroup)> on_end_group_t;
 
 typedef std::function<void(
-    Token& fieldToken,
+    Token &fieldToken,
     const char *buffer,
     std::uint64_t length,
-    Token& typeToken)> on_var_data_t;
+    Token &typeToken)> on_var_data_t;
 
 class BasicTokenListener
 {
 public:
-    virtual void onBeginMessage(Token& token) {}
+    virtual void onBeginMessage(Token &token) {}
 
-    virtual void onEndMessage(Token& token) {}
+    virtual void onEndMessage(Token &token) {}
 
     virtual void onEncoding(
-        Token& fieldToken,
+        Token &fieldToken,
         const char *buffer,
-        Token& typeToken,
+        Token &typeToken,
         std::uint64_t actingVersion) {}
 
     virtual void onEnum(
-        Token& fieldToken,
+        Token &fieldToken,
         const char *buffer,
-        std::vector<Token>& tokens,
+        std::vector<Token> &tokens,
         std::size_t fromIndex,
         std::size_t toIndex,
         std::uint64_t actingVersion) {}
 
     virtual void onBitSet(
-        Token& fieldToken,
+        Token &fieldToken,
         const char *buffer,
-        std::vector<Token>& tokens,
+        std::vector<Token> &tokens,
         std::size_t fromIndex,
         std::size_t toIndex,
         std::uint64_t actingVersion) {}
 
     virtual void onBeginComposite(
-        Token& fieldToken,
-        std::vector<Token>& tokens,
+        Token &fieldToken,
+        std::vector<Token> &tokens,
         std::size_t fromIndex,
         std::size_t toIndex) {}
 
     virtual void onEndComposite(
-        Token& fieldToken,
-        std::vector<Token>& tokens,
+        Token &fieldToken,
+        std::vector<Token> &tokens,
         std::size_t fromIndex,
         std::size_t toIndex) {}
 
     virtual void onGroupHeader(
-        Token& token,
+        Token &token,
         std::uint64_t numInGroup) {}
 
     virtual void onBeginGroup(
-        Token& token,
+        Token &token,
         std::uint64_t groupIndex,
         std::uint64_t numInGroup) {}
 
     virtual void onEndGroup(
-        Token& token,
+        Token &token,
         std::uint64_t groupIndex,
         std::uint64_t numInGroup) {}
 
     virtual void onVarData(
-        Token& fieldToken,
+        Token &fieldToken,
         const char *buffer,
         std::uint64_t length,
-        Token& typeToken) {}
+        Token &typeToken) {}
 };
 
 template<typename TokenListener>
 static void decodeComposite(
-    Token& fieldToken,
+    Token &fieldToken,
     const char *buffer,
     std::size_t bufferIndex,
     std::size_t length,
@@ -157,7 +155,7 @@ static void decodeComposite(
     size_t tokenIndex,
     size_t toIndex,
     std::uint64_t actingVersion,
-    TokenListener& listener)
+    TokenListener &listener)
 {
     listener.onBeginComposite(fieldToken, *tokens.get(), tokenIndex, toIndex);
 
@@ -171,17 +169,32 @@ static void decodeComposite(
         switch (token.signal())
         {
             case Signal::BEGIN_COMPOSITE:
-                decodeComposite(fieldToken, buffer, bufferIndex + offset, length, tokens, i, nextFieldIndex - 1, actingVersion, listener);
+                decodeComposite(
+                    fieldToken,
+                    buffer,
+                    bufferIndex + offset,
+                    length,
+                    tokens,
+                    i,
+                    nextFieldIndex - 1,
+                    actingVersion,
+                    listener);
                 break;
+
             case Signal::BEGIN_ENUM:
-                listener.onEnum(fieldToken, buffer + bufferIndex + offset, *tokens.get(), i, nextFieldIndex - 1, actingVersion);
+                listener.onEnum(
+                    fieldToken, buffer + bufferIndex + offset, *tokens.get(), i, nextFieldIndex - 1, actingVersion);
                 break;
+
             case Signal::BEGIN_SET:
-                listener.onBitSet(fieldToken, buffer + bufferIndex + offset, *tokens.get(), i, nextFieldIndex - 1, actingVersion);
+                listener.onBitSet(
+                    fieldToken, buffer + bufferIndex + offset, *tokens.get(), i, nextFieldIndex - 1, actingVersion);
                 break;
+
             case Signal::ENCODING:
                 listener.onEncoding(token, buffer + bufferIndex + offset, token, actingVersion);
                 break;
+
             default:
                 throw std::runtime_error("incorrect signal type in decodeComposite");
         }
@@ -201,11 +214,11 @@ static size_t decodeFields(
     std::shared_ptr<std::vector<Token>> tokens,
     size_t tokenIndex,
     const size_t numTokens,
-    TokenListener& listener)
+    TokenListener &listener)
 {
     while (tokenIndex < numTokens)
     {
-        Token& fieldToken = tokens->at(tokenIndex);
+        Token &fieldToken = tokens->at(tokenIndex);
         if (Signal::BEGIN_FIELD != fieldToken.signal())
         {
             break;
@@ -221,17 +234,31 @@ static size_t decodeFields(
         {
             case Signal::BEGIN_COMPOSITE:
                 decodeComposite<TokenListener>(
-                    fieldToken, buffer, offset, length, tokens, tokenIndex, nextFieldIndex - 2, actingVersion, listener);
+                    fieldToken,
+                    buffer,
+                    offset,
+                    length,
+                    tokens,
+                    tokenIndex,
+                    nextFieldIndex - 2,
+                    actingVersion,
+                    listener);
                 break;
+
             case Signal::BEGIN_ENUM:
-                listener.onEnum(fieldToken, buffer + offset, *tokens.get(), tokenIndex, nextFieldIndex - 2, actingVersion);
+                listener.onEnum(
+                    fieldToken, buffer + offset, *tokens.get(), tokenIndex, nextFieldIndex - 2, actingVersion);
                 break;
+
             case Signal::BEGIN_SET:
-                listener.onBitSet(fieldToken, buffer + offset, *tokens.get(), tokenIndex, nextFieldIndex - 2, actingVersion);
+                listener.onBitSet(
+                    fieldToken, buffer + offset, *tokens.get(), tokenIndex, nextFieldIndex - 2, actingVersion);
                 break;
+
             case Signal::ENCODING:
                 listener.onEncoding(fieldToken, buffer + offset, typeToken, actingVersion);
                 break;
+
             default:
                 throw std::runtime_error("incorrect signal type in decodeFields");
         }
@@ -247,15 +274,15 @@ std::size_t decodeData(
     const char *buffer,
     std::size_t bufferIndex,
     const std::size_t length,
-    std::shared_ptr<std::vector<Token>> tokens,
+    const std::shared_ptr<std::vector<Token>> &tokens,
     std::size_t tokenIndex,
     const std::size_t numTokens,
     std::uint64_t actingVersion,
-    TokenListener& listener)
+    TokenListener &listener)
 {
     while (tokenIndex < numTokens)
     {
-        Token& token = tokens->at(tokenIndex);
+        Token &token = tokens->at(tokenIndex);
         if (Signal::BEGIN_VAR_DATA != token.signal())
         {
             break;
@@ -263,18 +290,16 @@ std::size_t decodeData(
 
         const bool isPresent = token.tokenVersion() <= static_cast<std::int32_t>(actingVersion);
 
-        Token& lengthToken = tokens->at(tokenIndex + 2);
-        Token& dataToken = tokens->at(tokenIndex + 3);
+        Token &lengthToken = tokens->at(tokenIndex + 2);
+        Token &dataToken = tokens->at(tokenIndex + 3);
 
         if ((bufferIndex + dataToken.offset()) > length)
         {
             throw std::runtime_error("length too short for data length field");
         }
 
-        // TODO: is length always unsigned according to spec?
         std::uint64_t dataLength = isPresent ?
-            lengthToken.encoding().getAsUInt(buffer + bufferIndex + lengthToken.offset())
-            : 0;
+            lengthToken.encoding().getAsUInt(buffer + bufferIndex + lengthToken.offset()) : 0;
 
         if (isPresent)
         {
@@ -304,7 +329,7 @@ std::pair<size_t, size_t> decodeGroups(
     std::shared_ptr<std::vector<Token>> tokens,
     size_t tokenIndex,
     const size_t numTokens,
-    TokenListener& listener)
+    TokenListener &listener)
 {
     while (tokenIndex < numTokens)
     {
@@ -316,7 +341,7 @@ std::pair<size_t, size_t> decodeGroups(
 
         const bool isPresent = token.tokenVersion() <= static_cast<std::int32_t>(actingVersion);
 
-        Token& dimensionsTypeComposite = tokens->at(tokenIndex + 1);
+        Token &dimensionsTypeComposite = tokens->at(tokenIndex + 1);
         std::size_t dimensionsLength = static_cast<std::size_t>(dimensionsTypeComposite.encodedLength());
 
         if ((bufferIndex + dimensionsLength) > length)
@@ -324,15 +349,13 @@ std::pair<size_t, size_t> decodeGroups(
             throw std::runtime_error("length too short for group dimensions");
         }
 
-        Token& blockLengthToken = tokens->at(tokenIndex + 2);
-        Token& numInGroupToken = tokens->at(tokenIndex + 3);
+        Token &blockLengthToken = tokens->at(tokenIndex + 2);
+        Token &numInGroupToken = tokens->at(tokenIndex + 3);
 
         std::uint64_t blockLength = isPresent ?
-            blockLengthToken.encoding().getAsUInt(buffer + bufferIndex + blockLengthToken.offset())
-            : 0;
+            blockLengthToken.encoding().getAsUInt(buffer + bufferIndex + blockLengthToken.offset()) : 0;
         std::uint64_t numInGroup = isPresent ?
-            numInGroupToken.encoding().getAsUInt(buffer + bufferIndex + numInGroupToken.offset())
-            : 0;
+            numInGroupToken.encoding().getAsUInt(buffer + bufferIndex + numInGroupToken.offset()) : 0;
 
         if (isPresent)
         {
@@ -352,15 +375,15 @@ std::pair<size_t, size_t> decodeGroups(
                 throw std::runtime_error("length too short for group blockLength");
             }
 
-            size_t afterFieldsIndex =
-                decodeFields(buffer, bufferIndex, length, actingVersion, tokens, beginFieldsIndex, numTokens, listener);
+            size_t afterFieldsIndex = decodeFields(
+                buffer, bufferIndex, length, actingVersion, tokens, beginFieldsIndex, numTokens, listener);
             bufferIndex += blockLength;
 
-            std::pair<size_t, size_t> groupsResult =
-                decodeGroups(buffer, bufferIndex, length, actingVersion, tokens, afterFieldsIndex, numTokens, listener);
+            std::pair<size_t, size_t> groupsResult = decodeGroups(
+                buffer, bufferIndex, length, actingVersion, tokens, afterFieldsIndex, numTokens, listener);
 
-            bufferIndex =
-                decodeData(buffer, groupsResult.first, length, tokens, groupsResult.second, numTokens, actingVersion, listener);
+            bufferIndex = decodeData(
+                buffer, groupsResult.first, length, tokens, groupsResult.second, numTokens, actingVersion, listener);
 
             listener.onEndGroup(token, i, numInGroup);
         }
@@ -381,7 +404,7 @@ std::size_t decode(
     std::uint64_t actingVersion,
     size_t blockLength,
     std::shared_ptr<std::vector<Token>> msgTokens,
-    TokenListener& listener)
+    TokenListener &listener)
 {
     listener.onBeginMessage(msgTokens->at(0));
 
@@ -395,17 +418,16 @@ std::size_t decode(
 
     size_t bufferIndex = blockLength;
 
-    std::pair<size_t, size_t> groupResult =
-        decodeGroups(buffer, bufferIndex, length, actingVersion, msgTokens, tokenIndex, numTokens, listener);
+    std::pair<size_t, size_t> groupResult = decodeGroups(
+        buffer, bufferIndex, length, actingVersion, msgTokens, tokenIndex, numTokens, listener);
 
-    bufferIndex =
-        decodeData(buffer, groupResult.first, length, msgTokens, groupResult.second, numTokens, actingVersion, listener);
+    bufferIndex = decodeData(
+        buffer, groupResult.first, length, msgTokens, groupResult.second, numTokens, actingVersion, listener);
 
     listener.onEndMessage(msgTokens->at(numTokens - 1));
 
     return bufferIndex;
 }
-
 
 }}}
 
